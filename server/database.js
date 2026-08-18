@@ -202,6 +202,23 @@ async function initDatabase() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS market_listings (
+      id TEXT PRIMARY KEY,
+      seller_id TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      card_name TEXT NOT NULL,
+      set_code TEXT,
+      rarity TEXT,
+      image_uri TEXT,
+      foil INTEGER DEFAULT 0,
+      price_gold INTEGER NOT NULL,
+      status TEXT DEFAULT 'active',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (seller_id) REFERENCES users(id)
+    )
+  `);
+
   // Create indexes
   db.run('CREATE INDEX IF NOT EXISTS idx_collections_user ON collections(user_id)');
   db.run('CREATE INDEX IF NOT EXISTS idx_decks_user ON decks(user_id)');
@@ -210,6 +227,8 @@ async function initDatabase() {
   db.run('CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id)');
   db.run('CREATE INDEX IF NOT EXISTS idx_friends_user ON friends(user_id)');
   db.run('CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id)');
+  db.run('CREATE INDEX IF NOT EXISTS idx_market_status ON market_listings(status)');
+  db.run('CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_id)');
 
   // Save to disk
   saveDatabase();

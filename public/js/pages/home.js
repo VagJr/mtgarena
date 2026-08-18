@@ -54,6 +54,11 @@ const HomePage = {
               <h3>Mesa Tabletop</h3>
               <p>Simulador físico com todos os formatos (Standard a Commander).</p>
             </div>
+            <div class="quick-action-card" onclick="navigateTo('/market')">
+              <div class="quick-action-icon">🛒</div>
+              <h3>Mercado & Trocas</h3>
+              <p>Compre, venda por Gold e troque cartas com outros jogadores.</p>
+            </div>
             <div class="quick-action-card" onclick="navigateTo('/social')">
               <div class="quick-action-icon">👥</div>
               <h3>Comunidade & Feed</h3>
@@ -77,22 +82,27 @@ const HomePage = {
           </div>
         </section>
 
-        <!-- News Section -->
-        <section class="container mt-xl">
-          <div class="section-header">
+        <!-- News Section (Multiverse Journal) -->
+        <section class="container mt-2xl mb-xl">
+          <div class="section-header" style="border-bottom:1px solid var(--border-subtle);padding-bottom:10px;margin-bottom:16px;">
             <div>
-              <h2 class="section-title">📰 Notícias & Spoilers do Multiverso</h2>
-              <p style="font-size:0.8rem;color:var(--text-muted);">Fique por dentro das novidades diárias do mundo de Magic: The Gathering.</p>
+              <h2 class="section-title">📰 Jornal do Multiverso (Notícias & Spoilers)</h2>
+              <p style="font-size:0.82rem;color:var(--text-muted);margin:2px 0 0;">Artigos, spoilers oficiais e novidades atualizadas diretamente do universo de Magic.</p>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="navigateTo('/news')">Ver Todas ↗</button>
+            <button class="btn btn-secondary btn-sm" onclick="navigateTo('/news')">Ver Todas as Notícias ↗</button>
           </div>
-          <div id="home-news-preview" class="news-grid" style="margin-top:var(--space-sm);">${CardDisplay.renderSkeleton(3)}</div>
+          <div id="home-news-preview" class="news-grid">${CardDisplay.renderSkeleton(3)}</div>
         </section>
 
         <!-- Stats Section -->
         ${AppState.user ? `
-        <section class="container mt-xl mb-lg">
-          <h2 class="section-title mb-lg">📊 Seu Progresso</h2>
+        <section class="container mt-2xl mb-2xl">
+          <div class="section-header" style="border-bottom:1px solid var(--border-subtle);padding-bottom:10px;margin-bottom:16px;">
+            <div>
+              <h2 class="section-title">📊 Seu Painel de Planeswalker</h2>
+              <p style="font-size:0.82rem;color:var(--text-muted);margin:2px 0 0;">Seu progresso, saldo de moedas do multiverso e recompensa diária.</p>
+            </div>
+          </div>
           <div class="stats-grid" id="home-stats">
             <div class="stat-card">
               <div class="stat-value" id="stat-gold">${AppState.user.gold || 0}</div>
@@ -112,7 +122,7 @@ const HomePage = {
             </div>
           </div>
           <div style="text-align:center;margin-top:var(--space-lg);">
-            <button class="btn btn-primary" onclick="HomePage.claimDaily()">🎁 Recompensa Diária</button>
+            <button class="btn btn-primary" onclick="HomePage.claimDaily()">🎁 Resgatar Recompensa Diária</button>
           </div>
         </section>
         ` : ''}

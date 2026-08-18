@@ -1,10 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════
-   MTG ARENA SOCIAL — Card Renderer (Platform-Aware Touch & Mouse Gestures)
+   MTG ARENA SOCIAL — Card Renderer (Touch & Mouse Long-Press + RMB)
    ═══════════════════════════════════════════════════════════════ */
 
 const CardRenderer = {
   lastTapTime: {},
   longPressTimer: null,
+  pressStartX: 0,
+  pressStartY: 0,
 
   renderBattlefieldCard(card, isOwn = true) {
     const tapped = card.tapped ? 'tapped' : '';
@@ -30,12 +32,13 @@ const CardRenderer = {
            data-draggable data-zone="battlefield"
            onclick="CardRenderer.handleCardTap(event, '${card.id}', ${isOwn}, 'battlefield')"
            onpointerdown="CardRenderer.handlePointerDown(event, '${card.id}', ${isOwn}, 'battlefield')"
+           onpointermove="CardRenderer.handlePointerMove(event)"
            onpointerup="CardRenderer.handlePointerUp()"
            onpointercancel="CardRenderer.handlePointerUp()"
            ${isOwn ? `ondblclick="GameEngine.tapCard('${card.id}')"` : ''}
            oncontextmenu="GameEngine.showContextMenu(event, '${card.id}', ${isOwn}); return false;"
            onwheel="GameEngine.handleCardWheel(event, '${card.id}')"
-           title="${card.name}${card.power ? ` (${card.power}/${card.toughness})` : ''} • Duplo clique para Virar • Clique Direito para Menu">
+           title="${card.name}${card.power ? ` (${card.power}/${card.toughness})` : ''} • Segure ou Clique Direito para Opções">
         ${img}
         ${CounterSystem.renderCounterPips(card.counters)}
       </div>`;
@@ -54,27 +57,41 @@ const CardRenderer = {
            data-draggable data-zone="hand"
            onclick="CardRenderer.handleCardTap(event, '${card.id}', true, 'hand')"
            onpointerdown="CardRenderer.handlePointerDown(event, '${card.id}', true, 'hand')"
+           onpointermove="CardRenderer.handlePointerMove(event)"
            onpointerup="CardRenderer.handlePointerUp()"
            onpointercancel="CardRenderer.handlePointerUp()"
            ondblclick="GameEngine.playCard('${card.id}')"
            oncontextmenu="GameEngine.showHandContextMenu(event, '${card.id}'); return false;"
-           title="${card.name} (Arraste para a mesa ou duplo-clique para conjurar)">
+           title="${card.name} (Arraste para a mesa • Segure para opções)">
         <img src="${imgUri}" alt="${card.name}" draggable="false" loading="lazy">
       </div>`;
   },
 
   handlePointerDown(e, cardId, isOwn, zone) {
     this.handlePointerUp();
-    if (e.pointerType === 'touch') {
-      this.longPressTimer = setTimeout(() => {
-        if (DragDropSystem.isDragging) return;
-        try { navigator.vibrate?.(45); } catch(err) {}
-        if (zone === 'hand') {
-          GameEngine.showHandContextMenu(e, cardId);
-        } else {
-          GameEngine.showContextMenu(e, cardId, isOwn);
-        }
-      }, 450);
+    this.pressStartX = e.clientX || 0;
+    this.pressStartY = e.clientY || 0;
+
+    // Trigger Long-Press in 400ms for both Touch and Left-Click hold
+    this.longPressTimer = setTimeout(() => {
+      if (DragDropSystem.isDragging) return;
+      try { navigator.vibrate?.(45); } catch(err) {}
+      if (zone === 'hand') {
+        GameEngine.showHandContextMenu(e, cardId);
+      } else {
+        GameEngine.showContextMenu(e, cardId, isOwn);
+      }
+      this.longPressTimer = null;
+    }, 400);
+  },
+
+  handlePointerMove(e) {
+    if (this.longPressTimer) {
+      const dist = Math.hypot(e.clientX - this.pressStartX, e.clientY - this.pressStartY);
+      if (dist > 8) {
+        clearTimeout(this.longPressTimer);
+        this.longPressTimer = null;
+      }
     }
   },
 
@@ -87,7 +104,6 @@ const CardRenderer = {
 
   handleCardTap(e, cardId, isOwn, zone) {
     this.handlePointerUp();
-    // Ignore click if it came right after a drag drop
     if (DragDropSystem.suppressClick) return;
 
     const isTouch = e.pointerType === 'touch' || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);

@@ -42,21 +42,30 @@ const GameEngine = {
     });
 
     s.on('game:cardPlayed', (data) => {
+      const nameLower = (data.card.name || '').toLowerCase();
       const typeLower = (data.card.type_line || '').toLowerCase();
-      const isCreature = typeLower.includes('creature') || data.card.power !== undefined;
-      const isSupportOrLand = typeLower.includes('land') || typeLower.includes('artifact') || typeLower.includes('enchantment');
+      const isLand = typeLower.includes('land') ||
+                     nameLower.includes('floresta') || nameLower.includes('forest') ||
+                     nameLower.includes('ilha') || nameLower.includes('island') ||
+                     nameLower.includes('planície') || nameLower.includes('plains') ||
+                     nameLower.includes('pântano') || nameLower.includes('swamp') ||
+                     nameLower.includes('montanha') || nameLower.includes('mountain');
+      const isSupport = isLand || typeLower.includes('artifact') || typeLower.includes('enchantment');
+      const isCreature = !isLand && (typeLower.includes('creature') || (data.card.power !== undefined && data.card.power !== ''));
 
       if (data.player === AppState.user?.username) {
         const handCard = document.querySelector(`#my-hand [data-card-id="${data.card.id}"]`);
         if (handCard) handCard.remove();
 
-        const targetRow = (isSupportOrLand && !isCreature)
+        const targetRow = (isSupport && !isCreature)
           ? (document.getElementById('my-backline') || document.getElementById('my-frontline'))
           : (document.getElementById('my-frontline') || document.getElementById('my-backline'));
 
         if (targetRow) targetRow.insertAdjacentHTML('beforeend', CardRenderer.renderBattlefieldCard(data.card, true));
       } else {
-        const oppRow = document.querySelector('#opponent-battlefield .frontline-combat-zone');
+        const oppRow = (isSupport && !isCreature)
+          ? document.querySelector('#opponent-battlefield')
+          : document.querySelector('#opponent-battlefield .frontline-combat-zone');
         if (oppRow) oppRow.insertAdjacentHTML('beforeend', CardRenderer.renderBattlefieldCard(data.card, false));
       }
       VFXEngine.castSpell(data.card.colors?.[0] || 'C');
@@ -69,15 +78,44 @@ const GameEngine = {
     });
 
     s.on('game:cardMoved', (data) => {
+      // Update local room state for accurate zone contents
+      if (this.room && this.room.players) {
+        const player = this.room.players.find(p => p.username === data.player);
+        if (player) {
+          if (!player.graveyard) player.graveyard = [];
+          if (!player.exile) player.exile = [];
+          if (!player.hand) player.hand = [];
+          if (!player.battlefield) player.battlefield = [];
+
+          // Remove from origin zone
+          if (Array.isArray(player[data.from])) {
+            const idx = player[data.from].findIndex(c => c.id === data.cardId);
+            if (idx !== -1) player[data.from].splice(idx, 1);
+          }
+
+          // Add to destination zone
+          if (data.card && Array.isArray(player[data.to])) {
+            const exists = player[data.to].some(c => c.id === data.card.id);
+            if (!exists) player[data.to].push(data.card);
+          }
+        }
+      }
+
       // If moved within the battlefield, do nothing destructive
       if (data.from === 'battlefield' && data.to === 'battlefield') return;
       const card = document.querySelector(`[data-card-id="${data.cardId}"]`);
       if (card) card.remove();
       this.addSystemChat(`${data.player} moveu ${data.card?.name || 'uma carta'} para ${data.to}`);
-      // Update count indicators
-      if (data.to === 'graveyard') {
-        const gy = document.getElementById('playmat-graveyard-count');
-        if (gy) gy.textContent = parseInt(gy.textContent || 0) + 1;
+      
+      // Update count indicators on playmat
+      if (data.player === AppState.user?.username) {
+        const me = this.room?.players?.find(p => p.username === AppState.user?.username);
+        if (me) {
+          const gy = document.getElementById('playmat-graveyard-count');
+          if (gy) gy.textContent = me.graveyard?.length || 0;
+          const ex = document.getElementById('playmat-exile-count');
+          if (ex) ex.textContent = me.exile?.length || 0;
+        }
       }
     });
 
@@ -209,9 +247,9 @@ const GameEngine = {
   nextPhase() { this.action('nextPhase'); },
   setPhase(phase) { this.action('nextPhase'); },
 
-  // Right-Click (RMB) Context Menu
+  // Right-Click (RMB) & Long-Press Context Menu with Strict Viewport Clamping
   showContextMenu(e, cardId, isOwn) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     this.closeContextMenu();
     this.selectedCardId = cardId;
 
@@ -219,27 +257,56 @@ const GameEngine = {
     const cardName = cardEl?.dataset.cardName || 'Carta';
     const isCreature = cardEl?.dataset.cardPower !== undefined && cardEl?.dataset.cardPower !== '';
 
+    // Backdrop for reliable outside clicks/touches
+    const backdrop = document.createElement('div');
+    backdrop.id = 'context-menu-backdrop';
+    backdrop.className = 'context-menu-backdrop';
+    backdrop.onclick = () => GameEngine.closeContextMenu();
+    backdrop.ontouchstart = () => GameEngine.closeContextMenu();
+    document.body.appendChild(backdrop);
+
     const menu = document.createElement('div');
     menu.id = 'active-context-menu';
     menu.className = 'game-context-menu';
-    menu.style.left = `${Math.min(window.innerWidth - 180, e.clientX)}px`;
-    menu.style.top = `${Math.min(window.innerHeight - 250, e.clientY)}px`;
+
+    // Viewport Boundary Clamping
+    const clientX = e?.clientX || (e?.touches && e.touches[0]?.clientX) || (e?.changedTouches && e.changedTouches[0]?.clientX) || (window.innerWidth / 2);
+    const clientY = e?.clientY || (e?.touches && e.touches[0]?.clientY) || (e?.changedTouches && e.changedTouches[0]?.clientY) || (window.innerHeight / 2);
+
+    const menuWidth = 195;
+    const menuHeight = isOwn ? 300 : 120;
+
+    let posX = clientX;
+    let posY = clientY;
+
+    if (posX + menuWidth > window.innerWidth - 8) {
+      posX = window.innerWidth - menuWidth - 8;
+    }
+    if (posX < 8) posX = 8;
+
+    if (posY + menuHeight > window.innerHeight - 10) {
+      posY = window.innerHeight - menuHeight - 10;
+    }
+    if (posY < 35) posY = 35;
+
+    menu.style.left = `${posX}px`;
+    menu.style.top = `${posY}px`;
 
     menu.innerHTML = `
       <div style="font-weight:700;font-size:0.75rem;padding:4px 8px;color:var(--mana-gold-glow);border-bottom:1px solid var(--border-subtle);">${cardName}</div>
-      <div class="context-menu-item" onclick="GameEngine.showFullCardZoom('${cardId}')">🔍 Zoom em Alta Definição [Z]</div>
-      <div class="context-menu-item" onclick="GameEngine.inspectCard('${cardId}')">📖 Traduzir & Inspecionar</div>
+      <div class="context-menu-item" onclick="GameEngine.showFullCardZoom('${cardId}'); GameEngine.closeContextMenu();">🔍 Zoom em Alta Definição [Z]</div>
+      <div class="context-menu-item" onclick="GameEngine.inspectCard('${cardId}'); GameEngine.closeContextMenu();">📖 Traduzir & Inspecionar</div>
       ${isOwn ? `
         <div class="context-menu-divider"></div>
-        ${isCreature ? `<div class="context-menu-item" style="color:var(--mana-red-glow);font-weight:600;" onclick="GameEngine.startAttackMode('${cardId}')">⚔️ Atacar com Esta Criatura</div>` : ''}
-        <div class="context-menu-item" onclick="GameEngine.tapCard('${cardId}')">🔄 Virar / Desvirar</div>
-        <div class="context-menu-item" onclick="GameEngine.addCounter('${cardId}','+1/+1')">➕ Adicionar Marcador +1/+1</div>
-        <div class="context-menu-item" onclick="GameEngine.addCounter('${cardId}','-1/-1')">➖ Adicionar Marcador -1/-1</div>
-        <div class="context-menu-item" onclick="GameEngine.action('clearCounters',{cardId:'${cardId}'})">🗑️ Zerar Marcadores</div>
+        ${isCreature ? `<div class="context-menu-item" style="color:var(--mana-red-glow);font-weight:600;" onclick="GameEngine.startAttackMode('${cardId}'); GameEngine.closeContextMenu();">⚔️ Atacar com Esta Criatura</div>` : ''}
+        <div class="context-menu-item" onclick="GameEngine.tapCard('${cardId}'); GameEngine.closeContextMenu();">🔄 Virar / Desvirar</div>
+        <div class="context-menu-item" onclick="GameEngine.addCounter('${cardId}','+1/+1'); GameEngine.closeContextMenu();">➕ Adicionar Marcador +1/+1</div>
+        <div class="context-menu-item" onclick="GameEngine.addCounter('${cardId}','-1/-1'); GameEngine.closeContextMenu();">➖ Adicionar Marcador -1/-1</div>
+        <div class="context-menu-item" onclick="GameEngine.action('clearCounters',{cardId:'${cardId}'}); GameEngine.closeContextMenu();">🗑️ Zerar Marcadores</div>
         <div class="context-menu-divider"></div>
-        <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'graveyard'})">⚰️ Enviar para Cemitério</div>
-        <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'exile'})">🌀 Enviar para Exílio</div>
-        <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'hand'})">📥 Devolver para a Mão</div>
+        <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'graveyard'}); GameEngine.closeContextMenu();">⚰️ Enviar para Cemitério</div>
+        <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'exile'}); GameEngine.closeContextMenu();">🌀 Enviar para Exílio</div>
+        <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'hand'}); GameEngine.closeContextMenu();">📥 Devolver para a Mão</div>
       ` : ''}
     `;
 
@@ -247,20 +314,48 @@ const GameEngine = {
   },
 
   showHandContextMenu(e, cardId) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     this.closeContextMenu();
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'context-menu-backdrop';
+    backdrop.className = 'context-menu-backdrop';
+    backdrop.onclick = () => GameEngine.closeContextMenu();
+    backdrop.ontouchstart = () => GameEngine.closeContextMenu();
+    document.body.appendChild(backdrop);
+
     const menu = document.createElement('div');
     menu.id = 'active-context-menu';
     menu.className = 'game-context-menu';
-    menu.style.left = `${Math.min(window.innerWidth - 180, e.clientX)}px`;
-    menu.style.top = `${Math.min(window.innerHeight - 200, e.clientY)}px`;
+
+    const clientX = e?.clientX || (e?.touches && e.touches[0]?.clientX) || (e?.changedTouches && e.changedTouches[0]?.clientX) || (window.innerWidth / 2);
+    const clientY = e?.clientY || (e?.touches && e.touches[0]?.clientY) || (e?.changedTouches && e.changedTouches[0]?.clientY) || (window.innerHeight / 2);
+
+    const menuWidth = 195;
+    const menuHeight = 190;
+
+    let posX = clientX;
+    let posY = clientY;
+
+    if (posX + menuWidth > window.innerWidth - 8) {
+      posX = window.innerWidth - menuWidth - 8;
+    }
+    if (posX < 8) posX = 8;
+
+    if (posY + menuHeight > window.innerHeight - 10) {
+      posY = window.innerHeight - menuHeight - 10;
+    }
+    if (posY < 35) posY = 35;
+
+    menu.style.left = `${posX}px`;
+    menu.style.top = `${posY}px`;
 
     menu.innerHTML = `
-      <div class="context-menu-item" onclick="GameEngine.playCard('${cardId}')">⚔️ Conjurar para o Campo</div>
-      <div class="context-menu-item" onclick="GameEngine.showFullCardZoom('${cardId}')">🔍 Zoom em Alta Resolução [Z]</div>
-      <div class="context-menu-item" onclick="GameEngine.inspectCard('${cardId}')">📖 Inspecionar & Tradução</div>
-      <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'hand',toZone:'graveyard'})">⚰️ Descartar no Cemitério</div>
-      <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'hand',toZone:'exile'})">🌀 Exilar da Mão</div>
+      <div class="context-menu-item" onclick="GameEngine.playCard('${cardId}'); GameEngine.closeContextMenu();">⚔️ Conjurar para o Campo</div>
+      <div class="context-menu-item" onclick="GameEngine.showFullCardZoom('${cardId}'); GameEngine.closeContextMenu();">🔍 Zoom em Alta Resolução [Z]</div>
+      <div class="context-menu-item" onclick="GameEngine.inspectCard('${cardId}'); GameEngine.closeContextMenu();">📖 Inspecionar & Tradução</div>
+      <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'hand',toZone:'graveyard'}); GameEngine.closeContextMenu();">⚰️ Descartar no Cemitério</div>
+      <div class="context-menu-item" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'hand',toZone:'exile'}); GameEngine.closeContextMenu();">🌀 Exilar da Mão</div>
     `;
     document.body.appendChild(menu);
   },
@@ -268,6 +363,8 @@ const GameEngine = {
   closeContextMenu() {
     const menu = document.getElementById('active-context-menu');
     if (menu) menu.remove();
+    const backdrop = document.getElementById('context-menu-backdrop');
+    if (backdrop) backdrop.remove();
   },
 
   // Mouse Wheel: Quick adjust counters
@@ -293,10 +390,80 @@ const GameEngine = {
   },
 
   sendPingPrompt() {
-    this.action('ping', { x: 50, y: 50, message: '📍 Atenção nesta jogada!' });
+    this.showTacticalPingMenu();
   },
 
-  renderPingAnimation(xPct, yPct, playerName) {
+  showTacticalPingMenu(targetX = 50, targetY = 50) {
+    const existing = document.getElementById('tactical-ping-menu');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'tactical-ping-menu';
+    overlay.className = 'modal-overlay';
+    overlay.style.zIndex = '3700';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    overlay.innerHTML = `
+      <div class="modal" style="max-width:520px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--border-subtle);padding-bottom:8px;">
+          <h3 style="margin:0;color:var(--mana-gold-glow);font-size:1.1rem;">📍 Pings Táticos & Avisos de MTG</h3>
+          <button class="btn btn-ghost btn-sm" onclick="this.closest('#tactical-ping-menu').remove()">✕</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;max-height:65vh;overflow-y:auto;padding-right:4px;">
+          <!-- Compra & Mão -->
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--mana-blue-light);margin-bottom:4px;">📥 COMPRA & MÃO</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Compre sua carta do turno! 🃏', ${targetX}, ${targetY})">🃏 "Compre sua carta!"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Você esqueceu de comprar carta! ⚠️', ${targetX}, ${targetY})">⚠️ "Você não comprou!"</button>
+            </div>
+          </div>
+
+          <!-- Fases & Desvirar -->
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--mana-gold-glow);margin-bottom:4px;">🔄 FASES & DESVIRAR</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Desvire suas permanentes! 🔄', ${targetX}, ${targetY})">🔄 "Desvire suas cartas!"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Você não desvirou suas cartas! ✋', ${targetX}, ${targetY})">✋ "Você não desvirou!"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Passando prioridade. Alguma resposta? ⏳', ${targetX}, ${targetY})">⏳ "Alguma resposta?"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Passo o turno! 🏁', ${targetX}, ${targetY})">🏁 "Passo o turno"</button>
+            </div>
+          </div>
+
+          <!-- Combate -->
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--mana-red-glow);margin-bottom:4px;">⚔️ COMBATE & ATAQUE</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Declare seus atacantes! ⚔️', ${targetX}, ${targetY})">⚔️ "Declare atacantes!"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Declare seus bloqueadores! 🛡️', ${targetX}, ${targetY})">🛡️ "Declare bloqueadores!"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Resolução do dano de combate! 💥', ${targetX}, ${targetY})">💥 "Dano de combate"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Total de dano letal! 💀', ${targetX}, ${targetY})">💀 "Dano letal!"</button>
+            </div>
+          </div>
+
+          <!-- Marcadores & Zonas -->
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--success);margin-bottom:4px;">➕ MARCADORES, PILHA & ZONAS</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Coloque o marcador na permanente! ➕', ${targetX}, ${targetY})">➕ "Coloque marcador!"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Gatilho de habilidade na pilha! ⚡', ${targetX}, ${targetY})">⚡ "Gatilho na pilha!"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Atenção ao cemitério! ⚰️', ${targetX}, ${targetY})">⚰️ "Atenção ao Cemitério"</button>
+              <button class="btn btn-secondary btn-sm" onclick="GameEngine.sendCustomPing('Verifique a zona de exílio! 🌀', ${targetX}, ${targetY})">🌀 "Verifique o Exílio"</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  },
+
+  sendCustomPing(message, x = 50, y = 50) {
+    document.getElementById('tactical-ping-menu')?.remove();
+    this.action('ping', { x, y, message });
+  },
+
+  renderPingAnimation(xPct, yPct, playerName, message = 'Alerta!') {
     const container = document.getElementById('main-battlefield-container');
     if (!container) return;
 
@@ -304,10 +471,15 @@ const GameEngine = {
     ping.className = 'ping-indicator';
     ping.style.left = `${xPct}%`;
     ping.style.top = `${yPct}%`;
-    ping.innerHTML = `<span class="ping-label">📍 ${playerName}</span>`;
+    ping.innerHTML = `
+      <div class="ping-label" style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <span style="color:var(--mana-gold-glow);font-weight:700;">📍 ${playerName}</span>
+        <span style="font-size:0.72rem;color:#fff;background:rgba(0,0,0,0.9);padding:2px 8px;border-radius:4px;border:1px solid var(--mana-gold);white-space:nowrap;">${message}</span>
+      </div>
+    `;
     container.appendChild(ping);
 
-    setTimeout(() => ping.remove(), 1200);
+    setTimeout(() => ping.remove(), 3500);
   },
 
   // FULL HD REAL SIZED CARD ZOOM MODAL
@@ -464,32 +636,37 @@ const GameEngine = {
     }
 
     panel.innerHTML = `
-      <div class="draggable-header" onmousedown="GameEngine.makeDraggable(document.getElementById('live-inspector-panel'), event)">
-        <span style="font-size:0.75rem;color:var(--mana-gold-glow);font-weight:600;">🔍 INSPEÇÃO AO VIVO (PT-BR)</span>
-        <button class="btn btn-ghost btn-sm" style="padding:1px 6px;" onclick="GameEngine.closeInspector()">✕</button>
-      </div>
-      <div class="live-inspector-content">
-        <img class="live-inspector-img" src="${cardImage}" alt="${cardName}" onclick="GameEngine.showFullCardZoom('${cardId}')" title="Clique para abrir Zoom em Alta Definição">
-        <div class="live-inspector-details">
-          <div class="live-inspector-name" id="insp-name">${cardName}</div>
-          <div class="live-inspector-type" id="insp-type">${cardType}</div>
-          ${cardPower !== undefined && cardPower !== '' ? `<div style="font-family:var(--font-mono);font-size:0.8rem;color:var(--mana-gold-glow);margin-top:2px;"><b>Poder/Resistência:</b> ${cardPower}/${cardToughness}</div>` : ''}
-          <div class="live-inspector-oracle" id="insp-oracle">
-            <span style="color:var(--text-muted);font-size:0.75rem;">⏳ Traduzindo regras em tempo real...</span>
-          </div>
+      <div class="draggable-header" id="insp-drag-handle" onmousedown="GameEngine.makeDraggable(document.getElementById('live-inspector-panel'), event)" ontouchstart="GameEngine.makeDraggable(document.getElementById('live-inspector-panel'), event)">
+        <span style="font-size:0.75rem;color:var(--mana-gold-glow);font-weight:700;">🔍 ${cardName}</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button class="btn btn-ghost btn-sm" style="padding:1px 6px;font-size:0.8rem;" onclick="GameEngine.toggleInspectorCollapse()" title="Recolher / Expandir">_</button>
+          <button class="btn btn-ghost btn-sm" style="padding:1px 6px;" onclick="GameEngine.closeInspector()" title="Fechar">✕</button>
         </div>
       </div>
-      <div class="live-inspector-actions">
-        <button class="live-action-chip" onclick="GameEngine.showFullCardZoom('${cardId}')">🔍 Zoom HD [Z]</button>
-        ${isOwn && (cardPower !== undefined && cardPower !== '') ? `
-          <button class="live-action-chip attack-btn" onclick="GameEngine.startAttackMode('${cardId}')">⚔️ Atacar com Esta Criatura</button>
-        ` : ''}
-        <button class="live-action-chip" onclick="GameEngine.tapCard('${cardId}')">🔄 Virar/Desvirar</button>
-        <button class="live-action-chip" onclick="GameEngine.addCounter('${cardId}','+1/+1')">+1/+1</button>
-        <button class="live-action-chip" onclick="GameEngine.addCounter('${cardId}','-1/-1')">−1/−1</button>
-        <button class="live-action-chip" onclick="GameEngine.action('clearCounters',{cardId:'${cardId}'})">🗑️ Zerar Marcadores</button>
-        <button class="live-action-chip" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'graveyard'})">⚰️ Cemitério</button>
-        <button class="live-action-chip" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'exile'})">🌀 Exílio</button>
+      <div class="live-inspector-body" id="live-inspector-body">
+        <div class="live-inspector-content">
+          <img class="live-inspector-img" src="${cardImage}" alt="${cardName}" onclick="GameEngine.showFullCardZoom('${cardId}')" title="Clique para abrir Zoom em Alta Definição">
+          <div class="live-inspector-details">
+            <div class="live-inspector-name" id="insp-name">${cardName}</div>
+            <div class="live-inspector-type" id="insp-type">${cardType}</div>
+            ${cardPower !== undefined && cardPower !== '' ? `<div style="font-family:var(--font-mono);font-size:0.8rem;color:var(--mana-gold-glow);margin-top:2px;"><b>P/T:</b> ${cardPower}/${cardToughness}</div>` : ''}
+            <div class="live-inspector-oracle" id="insp-oracle">
+              <span style="color:var(--text-muted);font-size:0.72rem;">⏳ Traduzindo regras...</span>
+            </div>
+          </div>
+        </div>
+        <div class="live-inspector-actions">
+          <button class="live-action-chip" onclick="GameEngine.showFullCardZoom('${cardId}')">🔍 Zoom HD [Z]</button>
+          ${isOwn && (cardPower !== undefined && cardPower !== '') ? `
+            <button class="live-action-chip attack-btn" onclick="GameEngine.startAttackMode('${cardId}')">⚔️ Atacar</button>
+          ` : ''}
+          <button class="live-action-chip" onclick="GameEngine.tapCard('${cardId}')">🔄 Virar/Desvirar</button>
+          <button class="live-action-chip" onclick="GameEngine.addCounter('${cardId}','+1/+1')">+1/+1</button>
+          <button class="live-action-chip" onclick="GameEngine.addCounter('${cardId}','-1/-1')">−1/−1</button>
+          <button class="live-action-chip" onclick="GameEngine.action('clearCounters',{cardId:'${cardId}'})">🗑️ Zerar</button>
+          <button class="live-action-chip" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'graveyard'})">⚰️ Cemitério</button>
+          <button class="live-action-chip" onclick="GameEngine.action('moveCard',{cardId:'${cardId}',fromZone:'battlefield',toZone:'exile'})">🌀 Exílio</button>
+        </div>
       </div>
     `;
 
@@ -511,6 +688,19 @@ const GameEngine = {
     }
   },
 
+  toggleInspectorCollapse() {
+    const body = document.getElementById('live-inspector-body');
+    const panel = document.getElementById('live-inspector-panel');
+    if (!body || !panel) return;
+    if (body.style.display === 'none') {
+      body.style.display = '';
+      panel.classList.remove('inspector-collapsed');
+    } else {
+      body.style.display = 'none';
+      panel.classList.add('inspector-collapsed');
+    }
+  },
+
   closeInspector() {
     const panel = document.getElementById('live-inspector-panel');
     if (panel) panel.remove();
@@ -519,23 +709,36 @@ const GameEngine = {
 
   makeDraggable(element, event) {
     if (!element) return;
-    let shiftX = event.clientX - element.getBoundingClientRect().left;
-    let shiftY = event.clientY - element.getBoundingClientRect().top;
+    const clientX = event.clientX || (event.touches && event.touches[0]?.clientX) || 0;
+    const clientY = event.clientY || (event.touches && event.touches[0]?.clientY) || 0;
+
+    let shiftX = clientX - element.getBoundingClientRect().left;
+    let shiftY = clientY - element.getBoundingClientRect().top;
 
     function moveAt(pageX, pageY) {
-      element.style.left = Math.max(10, Math.min(window.innerWidth - element.offsetWidth - 10, pageX - shiftX)) + 'px';
-      element.style.top = Math.max(45, Math.min(window.innerHeight - element.offsetHeight - 50, pageY - shiftY)) + 'px';
+      element.style.left = Math.max(4, Math.min(window.innerWidth - element.offsetWidth - 4, pageX - shiftX)) + 'px';
+      element.style.top = Math.max(35, Math.min(window.innerHeight - element.offsetHeight - 20, pageY - shiftY)) + 'px';
+      element.style.bottom = 'auto';
+      element.style.right = 'auto';
     }
 
-    function onMouseMove(e) {
-      moveAt(e.pageX, e.pageY);
+    function onMove(e) {
+      const x = e.pageX || (e.touches && e.touches[0]?.pageX) || 0;
+      const y = e.pageY || (e.touches && e.touches[0]?.pageY) || 0;
+      moveAt(x, y);
     }
 
-    document.addEventListener('mousemove', onMouseMove);
-    document.onmouseup = function() {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.onmouseup = null;
-    };
+    function onEnd() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
   },
 
   addMana(color) {
@@ -685,14 +888,22 @@ const GameEngine = {
 
       const fullCards = [];
       for (const item of (deck.cards || [])) {
+        const nameLow = (item.name || '').toLowerCase();
+        const isBasicLand = nameLow.includes('mountain') || nameLow.includes('montanha') ||
+                            nameLow.includes('island') || nameLow.includes('ilha') ||
+                            nameLow.includes('plains') || nameLow.includes('planície') ||
+                            nameLow.includes('swamp') || nameLow.includes('pântano') ||
+                            nameLow.includes('forest') || nameLow.includes('floresta');
+        const isLand = isBasicLand || (item.type_line && item.type_line.toLowerCase().includes('land'));
+
         for (let i = 0; i < (item.quantity || 1); i++) {
           fullCards.push({
             id: `game-card-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name: item.name,
-            power: item.power || (item.name.includes('Lontras') ? 3 : item.name.includes('Terror') ? 5 : item.name.includes('Goblin') ? 2 : 3),
-            toughness: item.toughness || 3,
+            power: isLand ? undefined : (item.power !== undefined ? item.power : (item.name.includes('Lontras') ? 3 : item.name.includes('Terror') ? 5 : item.name.includes('Goblin') ? 2 : 3)),
+            toughness: isLand ? undefined : (item.toughness !== undefined ? item.toughness : 3),
             oracle_text: item.oracle_text || '',
-            type_line: item.type_line || (item.name.includes('Mountain') || item.name.includes('Island') || item.name.includes('Plains') || item.name.includes('Swamp') || item.name.includes('Forest') ? 'Basic Land' : 'Creature'),
+            type_line: isLand ? (item.type_line || 'Basic Land') : (item.type_line || 'Creature'),
             image_uri: `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(item.name)}&format=image&version=normal`,
             image_uris: {
               small: `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(item.name)}&format=image&version=small`,
@@ -736,28 +947,64 @@ const GameEngine = {
     }
   },
 
-  showZone(zone) {
+  showZone(zone, targetPlayerUsername = null) {
     if (!this.room) return;
-    const me = this.room.players?.find(p => p.username === AppState.user?.username);
-    const cards = me?.[zone] || [];
-    this.showZoneOverlay(zone, cards);
+    const username = targetPlayerUsername || AppState.user?.username;
+    const player = this.room.players?.find(p => p.username === username);
+    const cards = player?.[zone] || [];
+    const zoneNames = {
+      graveyard: 'Cemitério ⚰️',
+      exile: 'Exílio 🌀',
+      commandZone: 'Zona de Comando 👑',
+      library: 'Grimório 📚'
+    };
+    const isOwn = username === AppState.user?.username;
+    const zoneTitle = `${zoneNames[zone] || zone.toUpperCase()} • ${username} (${cards.length} cartas)`;
+    this.showZoneOverlay(zoneTitle, cards, zone, isOwn);
   },
 
-  showZoneOverlay(title, cards, onSelect) {
+  showZoneOverlay(title, cards, zone, isOwn) {
+    const existing = document.querySelector('.zone-overlay');
+    if (existing) existing.remove();
+
     const overlay = document.createElement('div');
     overlay.className = 'zone-overlay';
+    document.body.classList.add('modal-open');
+
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+        document.body.classList.remove('modal-open');
+      }
+    };
+
     overlay.innerHTML = `
-      <div class="zone-overlay-header">
-        <h2 class="zone-overlay-title">${title.toUpperCase()} (${cards.length})</h2>
-        <button class="btn btn-ghost" onclick="this.closest('.zone-overlay').remove()">✕ Fechar</button>
-      </div>
-      <div class="zone-overlay-cards">
-        ${cards.map(c => `
-          <div style="cursor:pointer;" onclick="GameEngine.showFullCardZoom('${c.id}'); document.querySelector('.zone-overlay').remove();">
-            ${CardDisplay.render(c, { compact: true })}
-            <div style="text-align:center;font-size:0.75rem;margin-top:4px;color:var(--text-secondary);">${c.name}</div>
-          </div>
-        `).join('') || '<p style="color:var(--text-muted);text-align:center;grid-column:1/-1;">Zona vazia.</p>'}
+      <div class="zone-overlay-modal">
+        <div class="zone-overlay-header">
+          <h2 class="zone-overlay-title">${title}</h2>
+          <button class="btn btn-ghost" onclick="this.closest('.zone-overlay').remove(); document.body.classList.remove('modal-open');">✕ Fechar</button>
+        </div>
+        <div class="zone-overlay-cards">
+          ${cards.map(c => `
+            <div class="zone-card-item">
+              <div onclick="GameEngine.showFullCardZoom('${c.id}')" style="cursor:zoom-in;width:100%;text-align:center;">
+                <img src="${c.image_uris?.normal || c.image_uri || CardDisplay.getImageUri(c, 'normal')}" alt="${c.name}" style="width:100px;aspect-ratio:var(--card-ratio);border-radius:6px;box-shadow:var(--shadow-md);" loading="lazy">
+                <div style="font-weight:700;font-size:0.75rem;margin-top:4px;color:var(--mana-gold-glow);">${c.name}</div>
+              </div>
+              ${isOwn ? `
+                <div class="zone-card-actions">
+                  <button class="zone-card-action-btn" onclick="GameEngine.action('moveCard',{cardId:'${c.id}',fromZone:'${zone}',toZone:'battlefield'}); document.querySelector('.zone-overlay')?.remove(); document.body.classList.remove('modal-open');">⚔️ Campo</button>
+                  <button class="zone-card-action-btn" onclick="GameEngine.action('moveCard',{cardId:'${c.id}',fromZone:'${zone}',toZone:'hand'}); document.querySelector('.zone-overlay')?.remove(); document.body.classList.remove('modal-open');">📥 Mão</button>
+                  ${zone !== 'exile' ? `<button class="zone-card-action-btn" onclick="GameEngine.action('moveCard',{cardId:'${c.id}',fromZone:'${zone}',toZone:'exile'}); document.querySelector('.zone-overlay')?.remove(); document.body.classList.remove('modal-open');">🌀 Exilar</button>` : ''}
+                </div>
+              ` : `
+                <div class="zone-card-actions">
+                  <button class="zone-card-action-btn" onclick="GameEngine.showFullCardZoom('${c.id}')">🔍 Zoom HD</button>
+                </div>
+              `}
+            </div>
+          `).join('') || '<div style="color:var(--text-muted);text-align:center;grid-column:1/-1;padding:40px;">Esta zona está vazia no momento.</div>'}
+        </div>
       </div>
     `;
     document.body.appendChild(overlay);

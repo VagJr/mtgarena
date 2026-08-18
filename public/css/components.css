@@ -748,6 +748,302 @@ body.modal-open {
   border-radius: 8px;
 }
 
+/* ─── MODAL OVERLAY & HD ZOOM Z-INDEX FIX ─── */
+.modal-overlay, .card-zoom-modal, .card-modal-overlay {
+  z-index: 10000 !important;
+}
+
+/* ─── NEWS GRID & MULTIVERSE JOURNAL ─── */
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+.news-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
+}
+.news-card:hover {
+  border-color: var(--border-gold);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl), var(--shadow-glow-gold);
+}
+.news-card-img-wrapper {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  background: #000;
+}
+.news-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.news-card:hover .news-card-img {
+  transform: scale(1.06);
+}
+.news-card-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(14, 14, 28, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--mana-gold);
+  color: var(--mana-gold-glow);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+.news-card-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.news-card-source {
+  font-size: 0.7rem;
+  color: var(--mana-blue-light);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.news-card-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin: 0 0 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.news-card-summary {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 14px;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.news-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+.news-card-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ─── REAL-TIME SOCIAL DOCK (GLOBAL FLOATING WIDGET) ─── */
+.social-dock {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.social-dock-btn {
+  background: linear-gradient(135deg, #1A1A2E, #0E4C92);
+  border: 1.5px solid var(--mana-gold);
+  color: var(--mana-gold-glow);
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-xl), 0 0 20px rgba(212, 160, 23, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all var(--transition-fast);
+}
+.social-dock-btn:hover {
+  transform: translateY(-2px);
+  background: var(--mana-gold);
+  color: #000;
+}
+.social-online-pip {
+  width: 9px;
+  height: 9px;
+  background: #00E676;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00E676;
+  animation: pulse 2s infinite;
+}
+.social-dock-panel {
+  position: absolute;
+  bottom: 50px;
+  right: 0;
+  width: 340px;
+  height: 480px;
+  background: rgba(14, 14, 28, 0.98);
+  backdrop-filter: blur(16px);
+  border: 1.5px solid var(--mana-gold);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl), 0 0 35px rgba(0,0,0,0.9);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+.social-dock-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+}
+.social-dock-tabs {
+  display: flex;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.social-dock-tab {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+.social-dock-tab.active {
+  background: var(--bg-elevated);
+  color: var(--mana-gold-glow);
+  border-bottom: 2px solid var(--mana-gold);
+}
+.social-dock-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.social-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+.social-user-row:hover {
+  border-color: var(--mana-gold);
+  background: var(--bg-hover);
+}
+.social-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 4px;
+}
+.social-chat-msg {
+  background: var(--bg-tertiary);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.social-chat-author {
+  font-weight: 700;
+  color: var(--mana-gold-glow);
+  font-size: 0.72rem;
+}
+.social-chat-input-box {
+  display: flex;
+  border-top: 1px solid var(--border-subtle);
+  padding: 6px;
+  gap: 4px;
+  background: var(--bg-card);
+}
+.social-chat-input-box input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+/* ─── P2P CARD MARKETPLACE & TRADE HUB ─── */
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+  margin-top: var(--space-md);
+}
+.market-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+.market-card:hover {
+  border-color: var(--mana-gold);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl), 0 0 20px rgba(212, 160, 23, 0.25);
+}
+.market-card-img {
+  width: 100%;
+  aspect-ratio: var(--card-ratio);
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: var(--shadow-md);
+  cursor: zoom-in;
+}
+.market-card-info {
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.market-price-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(212, 160, 23, 0.12);
+  border: 1px solid var(--mana-gold);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-top: 6px;
+  font-weight: 700;
+  color: var(--mana-gold-glow);
+}
+
 @media (max-width: 820px) {
   .card-detail-content {
     grid-template-columns: 1fr;
@@ -756,5 +1052,10 @@ body.modal-open {
   .card-detail-visual {
     max-width: 240px;
     margin: 0 auto;
+  }
+  .social-dock-panel {
+    width: calc(100vw - 32px);
+    right: 0;
+    bottom: 55px;
   }
 }

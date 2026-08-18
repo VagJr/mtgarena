@@ -64,19 +64,19 @@ const GameBoard = {
               `).join('')}
             </div>
 
-            <!-- Opponent Side Slots (Collapsible / Compact) -->
+            <!-- Opponent Side Slots (Interactive Graveyard & Exile) -->
             <div class="playmat-side-slots opp-side-slots">
               <div class="playmat-dedicated-slot" title="Grimório do Oponente">
                 <span class="playmat-dedicated-slot-title">📚 Deck</span>
                 <span class="playmat-dedicated-slot-count">${opponents[0]?.libraryCount || 0}</span>
               </div>
-              <div class="playmat-dedicated-slot" title="Cemitério do Oponente">
+              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('graveyard', '${opponents[0]?.username}')" title="Ver Cemitério do Oponente">
                 <span class="playmat-dedicated-slot-title">⚰️ Cem.</span>
-                <span class="playmat-dedicated-slot-count">${opponents[0]?.graveyardCount || 0}</span>
+                <span class="playmat-dedicated-slot-count">${opponents[0]?.graveyardCount || (opponents[0]?.graveyard||[]).length || 0}</span>
               </div>
-              <div class="playmat-dedicated-slot" title="Exílio do Oponente">
+              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('exile', '${opponents[0]?.username}')" title="Ver Exílio do Oponente">
                 <span class="playmat-dedicated-slot-title">🌀 Exílio</span>
-                <span class="playmat-dedicated-slot-count">${opponents[0]?.exileCount || 0}</span>
+                <span class="playmat-dedicated-slot-count">${opponents[0]?.exileCount || (opponents[0]?.exile||[]).length || 0}</span>
               </div>
             </div>
           </div>
@@ -115,21 +115,21 @@ const GameBoard = {
               </div>
             </div>
 
-            <!-- Player Dedicated Side Slots -->
+            <!-- Player Dedicated Side Slots (Interactive) -->
             <div class="playmat-side-slots player-side-slots">
-              <div class="playmat-dedicated-slot" onclick="GameEngine.action('drawCard')" title="Comprar Carta [D]">
+              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.action('drawCard')" title="Comprar Carta [D]">
                 <span class="playmat-dedicated-slot-title">📚 Deck</span>
                 <span class="playmat-dedicated-slot-count" id="playmat-library-count">${me?.library?.length || me?.libraryCount || 0}</span>
               </div>
-              <div class="playmat-dedicated-slot" onclick="GameEngine.showZone('graveyard')" title="Ver Cemitério">
+              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('graveyard')" title="Ver Meu Cemitério">
                 <span class="playmat-dedicated-slot-title">⚰️ Cem.</span>
                 <span class="playmat-dedicated-slot-count" id="playmat-graveyard-count">${me?.graveyard?.length || me?.graveyardCount || 0}</span>
               </div>
-              <div class="playmat-dedicated-slot" onclick="GameEngine.showZone('exile')" title="Ver Exílio">
+              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('exile')" title="Ver Meu Exílio">
                 <span class="playmat-dedicated-slot-title">🌀 Exílio</span>
                 <span class="playmat-dedicated-slot-count" id="playmat-exile-count">${me?.exile?.length || me?.exileCount || 0}</span>
               </div>
-              <div class="playmat-dedicated-slot" onclick="GameEngine.showZone('commandZone')" title="Zona de Comando">
+              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('commandZone')" title="Ver Zona de Comando">
                 <span class="playmat-dedicated-slot-title">👑 Cmd</span>
                 <span class="playmat-dedicated-slot-count">${me?.commandZone?.length || 0}</span>
               </div>
@@ -169,7 +169,7 @@ const GameBoard = {
             </button>
           </div>
 
-          <!-- Hand & Player Life Tray -->
+          <!-- Hand & Player Life Tray with Horizontal Navigation -->
           <div class="player-hand-area" id="player-hand-area">
             
             <!-- Player Life Counter & Counters Hub -->
@@ -193,12 +193,18 @@ const GameBoard = {
               </div>
             </div>
 
-            <!-- Hand Cards Fan -->
-            <div class="hand-cards" id="my-hand">
+            <!-- Hand Scroll Left Arrow -->
+            <button class="hand-scroll-btn hand-scroll-left" onclick="GameBoard.scrollHand(-160)" title="Rolar cartas para esquerda">◀</button>
+
+            <!-- Hand Cards Fan with Wheel Scroll Support -->
+            <div class="hand-cards" id="my-hand" onwheel="GameBoard.handleHandWheel(event)">
               ${me && me.hand && me.hand.length > 0
                 ? me.hand.map(c => CardRenderer.renderHandCard(c)).join('')
                 : '<div class="hand-empty-prompt">Clique em <b>"Deck"</b> no topo para importar e jogar com seu deck!</div>'}
             </div>
+
+            <!-- Hand Scroll Right Arrow -->
+            <button class="hand-scroll-btn hand-scroll-right" onclick="GameBoard.scrollHand(160)" title="Rolar cartas para direita">▶</button>
           </div>
         </div>
 
@@ -232,6 +238,21 @@ const GameBoard = {
     if (hand) DragDropSystem.init(hand);
 
     GameEngine.bindKeyboardShortcuts();
+  },
+
+  handleHandWheel(e) {
+    const container = document.getElementById('my-hand');
+    if (container) {
+      e.preventDefault();
+      container.scrollLeft += (e.deltaY || e.deltaX) * 1.5;
+    }
+  },
+
+  scrollHand(amount) {
+    const container = document.getElementById('my-hand');
+    if (container) {
+      container.scrollBy({ left: amount, behavior: 'smooth' });
+    }
   },
 
   toggleHandExpand() {

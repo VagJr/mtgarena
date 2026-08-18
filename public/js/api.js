@@ -181,5 +181,35 @@ const API = {
 
   async updateProfile(data) {
     return this.put('/profile', data);
+  },
+
+  // Marketplace & P2P Card Trading
+  async getMarketListings(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return this.get(`/market${qs ? '?' + qs : ''}`);
+  },
+
+  async getMyMarketListings() {
+    return this.get('/market/my-listings');
+  },
+
+  async sellMarketCard(data) {
+    return this.post('/market/sell', data);
+  },
+
+  async buyMarketCard(listingId) {
+    return this.post(`/market/buy/${listingId}`, {});
+  },
+
+  async cancelMarketListing(listingId) {
+    return this.post(`/market/cancel/${listingId}`, {});
+  },
+
+  async getMarketTrades() {
+    return this.get('/market/trades');
+  },
+
+  async createMarketTrade(data) {
+    return this.post('/market/trades', data);
   }
 };

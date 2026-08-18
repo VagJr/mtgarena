@@ -19,6 +19,7 @@ const routes = {
   '/boosters': BoosterPage,
   '/play': GameLobbyPage,
   '/social': SocialPage,
+  '/market': MarketPage,
   '/meta': MetaPage,
   '/news': NewsPage,
   '/profile': ProfilePage
@@ -76,6 +77,17 @@ function updateAuthUI() {
     economy.style.display = 'flex';
     goldEl.textContent = `🪙 ${AppState.user.gold || 0}`;
     gemsEl.textContent = `💎 ${AppState.user.gems || 0}`;
+
+    // Re-register social presence
+    if (window.SocialDock && SocialDock.socket) {
+      SocialDock.socket.emit('social:register', {
+        id: AppState.user.id,
+        username: AppState.user.username,
+        avatar: AppState.user.avatar || '🧙',
+        level: AppState.user.level || 1,
+        status: 'No Saguão'
+      });
+    }
   } else {
     authBtn.textContent = 'Entrar';
     authBtn.onclick = showAuthModal;
@@ -128,6 +140,11 @@ async function initApp() {
   // Render initial page
   renderCurrentPage();
   updateActiveNav();
+
+  // Initialize Real-time Social Dock
+  if (window.SocialDock) {
+    SocialDock.init();
+  }
 
   // Hide loading screen
   setTimeout(() => {
