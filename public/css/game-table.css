@@ -1156,3 +1156,238 @@
     bottom: 90px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   👑 COMMANDER 2x2 (4 QUADRANTES) — PC & MOBILE HORIZONTAL
+   ═══════════════════════════════════════════════════════════════ */
+.commander-4p-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  padding: 4px;
+  background: radial-gradient(circle at center, rgba(14, 14, 30, 0.4) 0%, rgba(6, 6, 12, 0.95) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.commander-quadrant {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: rgba(14, 14, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 4px;
+  min-height: 0;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.commander-quadrant.is-self {
+  border-color: var(--mana-gold);
+  background: rgba(212, 160, 23, 0.04);
+}
+.commander-quadrant.is-ally {
+  border-color: var(--mana-blue-light);
+}
+
+.commander-quadrant-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  padding: 2px 8px;
+  margin-bottom: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.commander-quadrant-hud .hud-player-name {
+  font-size: 0.75rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.commander-quadrant-hud .hud-life-badge {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--mana-gold-glow);
+  background: rgba(212, 160, 23, 0.15);
+  padding: 1px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--mana-gold);
+}
+
+.commander-quadrant-body {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-height: 0;
+}
+
+.commander-quadrant-playmat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 3px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.commander-quadrant-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 65px;
+  flex-shrink: 0;
+}
+.commander-mini-slot {
+  background: rgba(10, 10, 20, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.55rem;
+  cursor: pointer;
+}
+.commander-mini-slot:hover {
+  border-color: var(--mana-gold);
+}
+
+/* Central Cross Stack & Mana in Commander */
+.commander-center-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(8, 8, 16, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--mana-gold);
+  border-radius: 20px;
+  padding: 2px 10px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 10px rgba(212, 160, 23, 0.3);
+}
+
+/* ─── PROMPT DE ORIENTAÇÃO HORIZONTAL PARA MOBILE COMMANDER ─── */
+.commander-orientation-prompt {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 4, 12, 0.96);
+  backdrop-filter: blur(20px);
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  animation: fadeIn 0.25s ease;
+}
+@media (max-width: 900px) and (orientation: portrait) {
+  .in-commander-mode .commander-orientation-prompt {
+    display: flex !important;
+  }
+}
+.orientation-icon-anim {
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+  animation: rotatePhone 2.2s infinite ease-in-out;
+}
+@keyframes rotatePhone {
+  0% { transform: rotate(0deg); }
+  35% { transform: rotate(-90deg); }
+  65% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+.commander-orientation-prompt h2 {
+  color: var(--mana-gold-glow);
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  margin-bottom: 8px;
+}
+.commander-orientation-prompt p {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  max-width: 320px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+/* ─── MOBILE LANDSCAPE COMMANDER OPTIMIZATION ─── */
+@media (orientation: landscape) and (max-height: 560px) {
+  .game-top-bar {
+    padding: 2px 6px;
+    height: 30px;
+  }
+  .game-top-bar-left .game-phase-indicator {
+    display: none;
+  }
+  .commander-4p-grid {
+    gap: 3px;
+    padding: 2px;
+  }
+  .commander-quadrant {
+    padding: 2px;
+  }
+  .commander-quadrant-hud {
+    padding: 1px 4px;
+    margin-bottom: 2px;
+  }
+  .commander-quadrant-hud .hud-player-name {
+    font-size: 0.65rem;
+  }
+  .commander-quadrant-hud .hud-life-badge {
+    font-size: 0.78rem;
+    padding: 0 5px;
+  }
+  .battlefield-card {
+    width: 44px;
+  }
+  .playmat-zone-slot {
+    min-height: 38px;
+    gap: 3px;
+    padding: 1px;
+  }
+  .playmat-slot-label {
+    font-size: 0.45rem;
+  }
+  .player-hand-panel-wrapper {
+    max-height: 75px;
+  }
+  .game-action-bar {
+    padding: 1px 4px;
+  }
+  .game-action-btn {
+    padding: 2px 5px;
+    font-size: 0.6rem;
+  }
+  .player-hand-area {
+    min-height: 48px;
+    padding: 2px 4px;
+  }
+  .hand-card {
+    width: 38px;
+    margin-left: -12px;
+  }
+  .life-number {
+    font-size: 0.95rem;
+  }
+  .life-btn {
+    width: 18px;
+    height: 18px;
+    font-size: 0.75rem;
+  }
+}
+

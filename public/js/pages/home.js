@@ -11,17 +11,22 @@ const HomePage = {
         <section class="hero-section">
           <div class="hero-bg"></div>
           <div class="container hero-content">
+            <div style="display:flex;justify-content:center;margin-bottom:14px;">
+              <img src="/logomtg.png" alt="Magic: The Gathering Logo" style="width:110px;height:110px;object-fit:contain;filter:drop-shadow(0 0 25px rgba(212,160,23,0.7));border-radius:18px;">
+            </div>
             <h1 class="hero-title">
               <span class="hero-title-line">Bem-vindo ao</span>
               <span class="hero-title-accent">MTG Arena Social</span>
             </h1>
-            <p class="hero-subtitle">A comunidade definitiva de Magic: The Gathering. Colecione, construa decks, abra boosters e jogue no simulador tabletop.</p>
+            <p class="hero-subtitle">A comunidade definitiva de Magic: The Gathering. Colecione, construa decks, abra boosters de 15 cartas e jogue no simulador tabletop.</p>
             <div class="hero-actions">
               ${AppState.user
                 ? `<button class="btn btn-primary btn-lg" onclick="navigateTo('/boosters')">✨ Abrir Booster</button>
-                   <button class="btn btn-secondary btn-lg" onclick="navigateTo('/play')">⚔️ Jogar Agora</button>`
+                   <button class="btn btn-secondary btn-lg" onclick="navigateTo('/play')">⚔️ Jogar Agora</button>
+                   <button class="btn btn-ghost btn-lg" onclick="PWAInstaller.showInstallBanner()">📲 Instalar App</button>`
                 : `<button class="btn btn-primary btn-lg" onclick="showAuthModal()">⚔️ Entrar no Plano</button>
-                   <button class="btn btn-secondary btn-lg" onclick="navigateTo('/search')">🔍 Explorar Cartas</button>`
+                   <button class="btn btn-secondary btn-lg" onclick="navigateTo('/search')">🔍 Explorar Cartas</button>
+                   <button class="btn btn-ghost btn-lg" onclick="PWAInstaller.showInstallBanner()">📲 Instalar App</button>`
               }
             </div>
           </div>
@@ -44,6 +49,11 @@ const HomePage = {
         <section class="container mt-lg">
           <h2 class="section-title mb-md">🎯 Portais do Multiverso</h2>
           <div class="quick-actions-grid">
+            <div class="quick-action-card" onclick="PWAInstaller.showInstallBanner()" style="border-color:var(--mana-gold);background:rgba(212,160,23,0.06);">
+              <div class="quick-action-icon">📱</div>
+              <h3 style="color:var(--mana-gold-glow);">Instalar App no Celular</h3>
+              <p>Adicione o jogo à sua Área de Trabalho com 1 clique para tela cheia e alta performance.</p>
+            </div>
             <div class="quick-action-card" onclick="navigateTo('/boosters')">
               <div class="quick-action-icon">✨</div>
               <h3>Abrir Boosters (15 Cards)</h3>
@@ -51,8 +61,8 @@ const HomePage = {
             </div>
             <div class="quick-action-card" onclick="navigateTo('/play')">
               <div class="quick-action-icon">⚔️</div>
-              <h3>Mesa Tabletop</h3>
-              <p>Simulador físico com todos os formatos (Standard a Commander).</p>
+              <h3>Mesa Tabletop (1v1 & Commander)</h3>
+              <p>Simulador físico sincronizado com todos os formatos (Standard a Commander 4P).</p>
             </div>
             <div class="quick-action-card" onclick="navigateTo('/market')">
               <div class="quick-action-icon">🛒</div>

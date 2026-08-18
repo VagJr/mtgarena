@@ -39,33 +39,99 @@ const GameEngine = {
       if (hand) hand.insertAdjacentHTML('beforeend', CardRenderer.renderHandCard(data.card));
       const libCount = document.getElementById('playmat-library-count');
       if (libCount) libCount.textContent = data.libraryCount;
+      const me = this.room?.players?.find(p => p.username === AppState.user?.username);
+      if (me) {
+        if (!me.hand) me.hand = [];
+        me.hand.push(data.card);
+        me.libraryCount = data.libraryCount;
+      }
+    });
+
+    s.on('game:playerAction', (data) => {
+      if (data.player !== AppState.user?.username) {
+        if (data.action === 'drew a card') {
+          const oppHandBadge = document.getElementById(`opp-hand-${data.player}`);
+          if (oppHandBadge) {
+            const cur = parseInt(oppHandBadge.textContent.replace(/\D/g, '') || 0);
+            oppHandBadge.textContent = `🃏 ${cur + 1}`;
+          }
+          const oppDeck = document.getElementById(`opp-deck-count-${data.player}`) || document.querySelector('.opp-side-slots .playmat-dedicated-slot-count');
+          if (oppDeck && data.libraryCount !== undefined) oppDeck.textContent = data.libraryCount;
+        }
+      }
+      this.addSystemChat(`${data.player} ${data.action}`);
+    });
+
+    s.on('game:playerJoined', (data) => {
+      if (data.room) {
+        this.room = data.room;
+        if (document.querySelector('.game-table')) {
+          GameBoard.render(this.room, AppState.user?.username);
+        }
+      }
+      if (data.player && data.player !== AppState.user?.username) {
+        showToast(`⚔️ Planeswalker ${data.player} entrou na mesa!`, 'info', 3000);
+        this.addSystemChat(`Planeswalker ${data.player} entrou na mesa de jogo!`);
+      }
+    });
+
+    s.on('game:playerLeft', (data) => {
+      showToast(`Planeswalker ${data.player} saiu da mesa.`, 'warning');
+      this.addSystemChat(`${data.player} abandonou a partida.`);
+    });
+
+    s.on('game:playerReady', (data) => {
+      if (data.room) {
+        this.room = data.room;
+      }
+      if (data.username !== AppState.user?.username) {
+        const oppDeck = document.getElementById(`opp-deck-count-${data.username}`) || document.querySelector('.opp-side-slots .playmat-dedicated-slot-count');
+        if (oppDeck) oppDeck.textContent = data.libraryCount || 53;
+        const oppHand = document.getElementById(`opp-hand-${data.username}`);
+        if (oppHand) oppHand.textContent = `🃏 ${data.handCount || 7}`;
+        showToast(`⚔️ Oponente ${data.username} carregou o deck e comprou 7 cartas!`, 'info');
+      }
     });
 
     s.on('game:cardPlayed', (data) => {
-      const nameLower = (data.card.name || '').toLowerCase();
-      const typeLower = (data.card.type_line || '').toLowerCase();
-      const isLand = typeLower.includes('land') ||
-                     nameLower.includes('floresta') || nameLower.includes('forest') ||
-                     nameLower.includes('ilha') || nameLower.includes('island') ||
-                     nameLower.includes('planície') || nameLower.includes('plains') ||
-                     nameLower.includes('pântano') || nameLower.includes('swamp') ||
-                     nameLower.includes('montanha') || nameLower.includes('mountain');
-      const isSupport = isLand || typeLower.includes('artifact') || typeLower.includes('enchantment');
-      const isCreature = !isLand && (typeLower.includes('creature') || (data.card.power !== undefined && data.card.power !== ''));
+      const isLand = window.MTGCardHelper?.isLand(data.card);
+      const isCreature = window.MTGCardHelper?.isCreature(data.card);
+      const isSupport = !isCreature;
+
+      // Update room state
+      if (this.room && this.room.players) {
+        const p = this.room.players.find(x => x.username === data.player);
+        if (p) {
+          if (!p.battlefield) p.battlefield = [];
+          if (!p.battlefield.some(c => c.id === data.card.id)) p.battlefield.push(data.card);
+          if (p.hand) {
+            const hIdx = p.hand.findIndex(c => c.id === data.card.id);
+            if (hIdx !== -1) p.hand.splice(hIdx, 1);
+          }
+        }
+      }
 
       if (data.player === AppState.user?.username) {
         const handCard = document.querySelector(`#my-hand [data-card-id="${data.card.id}"]`);
         if (handCard) handCard.remove();
 
-        const targetRow = (isSupport && !isCreature)
-          ? (document.getElementById('my-backline') || document.getElementById('my-frontline'))
-          : (document.getElementById('my-frontline') || document.getElementById('my-backline'));
+        const targetRow = isCreature
+          ? (document.getElementById('my-frontline') || document.getElementById('my-backline'))
+          : (document.getElementById('my-backline') || document.getElementById('my-frontline'));
 
         if (targetRow) targetRow.insertAdjacentHTML('beforeend', CardRenderer.renderBattlefieldCard(data.card, true));
       } else {
-        const oppRow = (isSupport && !isCreature)
-          ? document.querySelector('#opponent-battlefield')
-          : document.querySelector('#opponent-battlefield .frontline-combat-zone');
+        // Decrement opponent hand count badge
+        const oppHandBadge = document.getElementById(`opp-hand-${data.player}`);
+        if (oppHandBadge) {
+          const cur = parseInt(oppHandBadge.textContent.replace(/\D/g, '') || 0);
+          oppHandBadge.textContent = `🃏 ${Math.max(0, cur - 1)}`;
+        }
+
+        const oppRow = isCreature
+          ? (document.getElementById(`opp-frontline-${data.player}`) || document.querySelector('.opp-frontline') || document.querySelector('.opp-backline'))
+          : (document.getElementById(`opp-backline-${data.player}`) || document.querySelector('.opp-backline') || document.querySelector('.opp-frontline'));
+
         if (oppRow) oppRow.insertAdjacentHTML('beforeend', CardRenderer.renderBattlefieldCard(data.card, false));
       }
       VFXEngine.castSpell(data.card.colors?.[0] || 'C');
@@ -75,6 +141,13 @@ const GameEngine = {
     s.on('game:cardTapped', (data) => {
       const card = document.querySelector(`[data-card-id="${data.cardId}"]`);
       if (card) card.classList.toggle('tapped', data.tapped);
+    });
+
+    s.on('game:cardPositionUpdated', (data) => {
+      const card = document.querySelector(`[data-card-id="${data.cardId}"]`);
+      if (card && data.position) {
+        card.style.transform = `translate(${data.position.x}px, ${data.position.y}px)${card.classList.contains('tapped') ? ' rotate(90deg)' : ''}`;
+      }
     });
 
     s.on('game:cardMoved', (data) => {
@@ -103,11 +176,29 @@ const GameEngine = {
 
       // If moved within the battlefield, do nothing destructive
       if (data.from === 'battlefield' && data.to === 'battlefield') return;
-      const card = document.querySelector(`[data-card-id="${data.cardId}"]`);
-      if (card) card.remove();
+
+      const cardEl = document.querySelector(`[data-card-id="${data.cardId}"]`);
+      if (cardEl && data.to !== 'battlefield') {
+        cardEl.remove();
+      } else if (data.to === 'battlefield' && data.card) {
+        // Card was reanimated or returned to battlefield
+        const isOwn = data.player === AppState.user?.username;
+        const typeLower = (data.card.type_line || '').toLowerCase();
+        const isCreature = typeLower.includes('creature') || data.card.power !== undefined;
+        if (isOwn) {
+          const target = isCreature ? document.getElementById('my-frontline') : document.getElementById('my-backline');
+          if (target) target.insertAdjacentHTML('beforeend', CardRenderer.renderBattlefieldCard(data.card, true));
+        } else {
+          const target = isCreature 
+            ? (document.getElementById(`opp-frontline-${data.player}`) || document.querySelector('.opp-frontline'))
+            : (document.getElementById(`opp-backline-${data.player}`) || document.querySelector('.opp-backline'));
+          if (target) target.insertAdjacentHTML('beforeend', CardRenderer.renderBattlefieldCard(data.card, false));
+        }
+      }
+
       this.addSystemChat(`${data.player} moveu ${data.card?.name || 'uma carta'} para ${data.to}`);
       
-      // Update count indicators on playmat
+      // Update count indicators on playmat (both player and opponent)
       if (data.player === AppState.user?.username) {
         const me = this.room?.players?.find(p => p.username === AppState.user?.username);
         if (me) {
@@ -115,6 +206,14 @@ const GameEngine = {
           if (gy) gy.textContent = me.graveyard?.length || 0;
           const ex = document.getElementById('playmat-exile-count');
           if (ex) ex.textContent = me.exile?.length || 0;
+        }
+      } else {
+        const opp = this.room?.players?.find(p => p.username === data.player);
+        if (opp) {
+          const gy = document.getElementById(`opp-graveyard-count-${data.player}`);
+          if (gy) gy.textContent = opp.graveyard?.length || 0;
+          const ex = document.getElementById(`opp-exile-count-${data.player}`);
+          if (ex) ex.textContent = opp.exile?.length || 0;
         }
       }
     });
@@ -130,8 +229,21 @@ const GameEngine = {
         else if (data.change > 0) VFXEngine.healFlash();
       } else {
         const oppEl = document.getElementById(`opp-life-${data.player}`);
-        if (oppEl) oppEl.textContent = data.life;
+        if (oppEl) {
+          oppEl.textContent = data.life;
+          oppEl.parentElement?.classList.add('pulse');
+          setTimeout(() => oppEl.parentElement?.classList.remove('pulse'), 600);
+        }
         if (data.change < 0) VFXEngine.damageFlash();
+      }
+      const p = this.room?.players?.find(x => x.username === data.player);
+      if (p) p.life = data.life;
+    });
+
+    s.on('game:poisonUpdated', (data) => {
+      if (data.player !== AppState.user?.username) {
+        const oppPois = document.getElementById(`opp-poison-${data.player}`);
+        if (oppPois) oppPois.textContent = data.poison > 0 ? ` ☠️${data.poison}` : '';
       }
     });
 
@@ -145,30 +257,45 @@ const GameEngine = {
     });
 
     s.on('game:tokenCreated', (data) => {
+      const isSupport = data.token.tokenType === 'artifact' || data.token.power === undefined;
       if (data.player === AppState.user?.username) {
-        const isSupport = data.token.tokenType === 'artifact' || data.token.power === undefined;
         const bf = isSupport
           ? (document.getElementById('my-backline') || document.getElementById('my-frontline'))
           : (document.getElementById('my-frontline') || document.getElementById('my-backline'));
         if (bf) bf.insertAdjacentHTML('beforeend', CardRenderer.renderBattlefieldCard(data.token, true));
+      } else {
+        const oppBf = isSupport
+          ? (document.getElementById(`opp-backline-${data.player}`) || document.querySelector('.opp-backline'))
+          : (document.getElementById(`opp-frontline-${data.player}`) || document.querySelector('.opp-frontline'));
+        if (oppBf) oppBf.insertAdjacentHTML('beforeend', CardRenderer.renderBattlefieldCard(data.token, false));
       }
       this.addSystemChat(`${data.player} colocou a ficha ${data.token.name} no campo`);
     });
 
     s.on('game:pingReceived', (data) => {
-      this.renderPingAnimation(data.x, data.y, data.player);
-      this.addSystemChat(`📍 ${data.player} marcou o campo de batalha.`);
+      this.renderPingAnimation(data.x, data.y, data.player, data.message);
+      this.addSystemChat(`📍 ${data.player}: ${data.message || 'marcou o campo'}`);
     });
 
     s.on('game:phaseChanged', (data) => {
       document.querySelectorAll('.phase-step').forEach(p => p.classList.toggle('active', p.dataset.phase === data.phase));
       const turnInfo = document.querySelector('.game-turn-info');
       if (turnInfo) turnInfo.innerHTML = `Turno ${data.turnNumber} • <b style="color:var(--mana-gold-glow);">${data.activePlayer || '—'}</b>`;
+      if (this.room) {
+        this.room.phase = data.phase;
+        this.room.activePlayer = data.activePlayer;
+        this.room.turnNumber = data.turnNumber;
+      }
     });
 
-    s.on('game:untapAll', () => {
-      document.querySelectorAll('.battlefield-card.tapped').forEach(c => c.classList.remove('tapped'));
-      showToast('Todas as suas permanentes foram desviradas! 🔄', 'info', 1500);
+    s.on('game:untapAll', (data) => {
+      if (data.player === AppState.user?.username) {
+        document.querySelectorAll('#my-battlefield .battlefield-card.tapped').forEach(c => c.classList.remove('tapped'));
+        showToast('Todas as suas permanentes foram desviradas! 🔄', 'info', 1500);
+      } else {
+        document.querySelectorAll(`#opp-frontline-${data.player} .tapped, #opp-backline-${data.player} .tapped, #opponent-battlefield .tapped`).forEach(c => c.classList.remove('tapped'));
+        this.addSystemChat(`🔄 ${data.player} desvirou todas as suas permanentes.`);
+      }
     });
 
     s.on('game:diceRolled', (data) => {
@@ -189,6 +316,11 @@ const GameEngine = {
       if (hand) hand.innerHTML = data.hand.map(c => CardRenderer.renderHandCard(c)).join('');
       const libCount = document.getElementById('playmat-library-count');
       if (libCount) libCount.textContent = data.libraryCount;
+      const me = this.room?.players?.find(p => p.username === AppState.user?.username);
+      if (me) {
+        me.hand = data.hand;
+        me.libraryCount = data.libraryCount;
+      }
       showToast('Deck carregado! Mão inicial de 7 cartas comprada. 🃏', 'success');
     });
 
@@ -888,20 +1020,14 @@ const GameEngine = {
 
       const fullCards = [];
       for (const item of (deck.cards || [])) {
-        const nameLow = (item.name || '').toLowerCase();
-        const isBasicLand = nameLow.includes('mountain') || nameLow.includes('montanha') ||
-                            nameLow.includes('island') || nameLow.includes('ilha') ||
-                            nameLow.includes('plains') || nameLow.includes('planície') ||
-                            nameLow.includes('swamp') || nameLow.includes('pântano') ||
-                            nameLow.includes('forest') || nameLow.includes('floresta');
-        const isLand = isBasicLand || (item.type_line && item.type_line.toLowerCase().includes('land'));
+        const isLand = window.MTGCardHelper?.isLand(item) || (item.type_line && item.type_line.toLowerCase().includes('land'));
 
         for (let i = 0; i < (item.quantity || 1); i++) {
           fullCards.push({
             id: `game-card-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name: item.name,
-            power: isLand ? undefined : (item.power !== undefined ? item.power : (item.name.includes('Lontras') ? 3 : item.name.includes('Terror') ? 5 : item.name.includes('Goblin') ? 2 : 3)),
-            toughness: isLand ? undefined : (item.toughness !== undefined ? item.toughness : 3),
+            power: isLand ? undefined : (item.power !== undefined ? item.power : (item.name.includes('Lontras') ? 3 : item.name.includes('Terror') ? 5 : item.name.includes('Goblin') ? 2 : undefined)),
+            toughness: isLand ? undefined : (item.toughness !== undefined ? item.toughness : (item.power !== undefined ? 3 : undefined)),
             oracle_text: item.oracle_text || '',
             type_line: isLand ? (item.type_line || 'Basic Land') : (item.type_line || 'Creature'),
             image_uri: `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(item.name)}&format=image&version=normal`,

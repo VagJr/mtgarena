@@ -88,10 +88,15 @@ function setupGameSockets(io, getDb) {
       });
 
       socket.join(data.roomId);
-      io.to(data.roomId).emit('game:playerJoined', {
-        room: sanitizeRoom(room, socket.id),
-        player: data.username
+
+      // Broadcast individual sanitized states to each player in room
+      room.players.forEach(p => {
+        io.to(p.socketId).emit('game:playerJoined', {
+          room: sanitizeRoom(room, p.socketId),
+          player: data.username
+        });
       });
+
       io.emit('lobby:update', getLobbyRooms());
     });
 
@@ -116,8 +121,11 @@ function setupGameSockets(io, getDb) {
       room.phase = 'untap';
       room.activePlayer = 0;
 
-      // Each player sets their deck
-      io.to(data.roomId).emit('game:started', { room: sanitizeRoom(room, null) });
+      // Each player receives their tailored sanitized room state
+      room.players.forEach(p => {
+        io.to(p.socketId).emit('game:started', { room: sanitizeRoom(room, p.socketId) });
+      });
+
       io.emit('lobby:update', getLobbyRooms());
     });
 
@@ -147,9 +155,14 @@ function setupGameSockets(io, getDb) {
         commandZone: player.commandZone
       });
 
-      io.to(data.roomId).emit('game:playerReady', {
-        username: player.username,
-        libraryCount: player.library.length
+      // Notify all players in room with updated room state
+      room.players.forEach(p => {
+        io.to(p.socketId).emit('game:playerReady', {
+          username: player.username,
+          libraryCount: player.library.length,
+          handCount: player.hand.length,
+          room: sanitizeRoom(room, p.socketId)
+        });
       });
     });
 

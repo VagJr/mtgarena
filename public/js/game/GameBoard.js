@@ -1,27 +1,74 @@
 /* ═══════════════════════════════════════════════════════════════
-   MTG ARENA SOCIAL — Game Board (Adaptive Desktop & Mobile UI)
+   MTG ARENA SOCIAL — Game Board (Adaptive 1v1 & Commander 4-Quadrant UI)
    ═══════════════════════════════════════════════════════════════ */
+
+window.MTGCardHelper = {
+  isLand(card) {
+    if (!card) return false;
+    const nameLow = (card.name || '').toLowerCase();
+    const typeLow = (card.type_line || '').toLowerCase();
+    return typeLow.includes('land') || typeLow.includes('terreno') ||
+           nameLow.includes('floresta') || nameLow.includes('forest') ||
+           nameLow.includes('ilha') || nameLow.includes('island') ||
+           nameLow.includes('planície') || nameLow.includes('plains') ||
+           nameLow.includes('pântano') || nameLow.includes('swamp') ||
+           nameLow.includes('montanha') || nameLow.includes('mountain');
+  },
+  isCreature(card) {
+    if (!card) return false;
+    if (this.isLand(card)) return false;
+    const typeLow = (card.type_line || '').toLowerCase();
+    return typeLow.includes('creature') || typeLow.includes('criatura') || (card.power !== undefined && card.power !== '' && !this.isLand(card));
+  },
+  isSupport(card) {
+    if (!card) return false;
+    return this.isLand(card) || !this.isCreature(card);
+  }
+};
 
 const GameBoard = {
   handExpanded: false,
 
   render(room, myUsername) {
-    const me = room.players.find(p => p.username === myUsername);
-    const opponents = room.players.filter(p => p.username !== myUsername);
-    const phases = ['untap','upkeep','draw','main1','combat_begin','combat_attackers','combat_blockers','combat_damage','combat_end','main2','end','cleanup'];
-    const phaseLabels = { untap:'Desvirar', upkeep:'Manutenção', draw:'Compra', main1:'Principal 1', combat_begin:'Combate', combat_attackers:'Atacantes', combat_blockers:'Bloqueadores', combat_damage:'Dano', combat_end:'Fim Combate', main2:'Principal 2', end:'Final', cleanup:'Limpeza' };
-
     document.body.classList.add('in-game');
     document.getElementById('main-nav').style.display = 'none';
 
+    const isCommander = room.format === 'commander' || room.players.length > 2 || room.maxPlayers === 4;
+
+    if (isCommander) {
+      document.body.classList.add('in-commander-mode');
+      this.renderCommander4P(room, myUsername);
+    } else {
+      document.body.classList.remove('in-commander-mode');
+      this.render1v1(room, myUsername);
+    }
+
+    GameEngine.bindKeyboardShortcuts();
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ⚔️ 1v1 STANDARD / DUEL BATTLEFIELD (Symmetric 2-Player Playmats)
+  // ═══════════════════════════════════════════════════════════════
+  render1v1(room, myUsername) {
+    const me = room.players.find(p => p.username === myUsername) || { username: myUsername, life: 20, poison: 0, battlefield: [], hand: [] };
+    const opponents = room.players.filter(p => p.username !== myUsername);
+    const opp = opponents[0] || { username: 'Aguardando Oponente...', life: 20, poison: 0, battlefield: [], handCount: 0 };
+
+    const phases = ['untap','upkeep','draw','main1','combat_begin','combat_attackers','combat_blockers','combat_damage','combat_end','main2','end','cleanup'];
+    const phaseLabels = { untap:'Desvirar', upkeep:'Manutenção', draw:'Compra', main1:'Principal 1', combat_begin:'Combate', combat_attackers:'Atacantes', combat_blockers:'Bloqueadores', combat_damage:'Dano', combat_end:'Fim Combate', main2:'Principal 2', end:'Final', cleanup:'Limpeza' };
+
     // Separate player cards into Creatures (Frontline) and Support/Lands (Backline)
-    const myCreatures = (me?.battlefield || []).filter(c => (c.type_line || '').toLowerCase().includes('creature') || c.power !== undefined);
-    const mySupport = (me?.battlefield || []).filter(c => !((c.type_line || '').toLowerCase().includes('creature') || c.power !== undefined));
+    const myCreatures = (me.battlefield || []).filter(c => MTGCardHelper.isCreature(c));
+    const mySupport = (me.battlefield || []).filter(c => !MTGCardHelper.isCreature(c));
+
+    // Separate opponent cards
+    const oppCreatures = (opp.battlefield || []).filter(c => MTGCardHelper.isCreature(c));
+    const oppSupport = (opp.battlefield || []).filter(c => !MTGCardHelper.isCreature(c));
 
     document.getElementById('app').innerHTML = `
       <div class="game-table" oncontextmenu="return false;">
         
-        <!-- TOP BAR (Responsive for PC & Mobile) -->
+        <!-- TOP BAR -->
         <div class="game-top-bar">
           <div class="game-top-bar-left">
             <div class="game-phase-indicator" id="phase-stepper">
@@ -44,39 +91,44 @@ const GameBoard = {
         <!-- BATTLEFIELD CONTAINER -->
         <div class="battlefield-container" id="main-battlefield-container" onclick="GameEngine.handleBattlefieldClick(event)">
           
-          <!-- OPPONENTS PLAYMAT ZONE -->
-          <div class="battlefield-zone opponent" id="opponent-battlefield">
+          <!-- OPPONENT PLAYMAT (Symmetric Top Half) -->
+          <div class="battlefield-zone opponent" id="opponent-battlefield" style="flex:1 1 50%;min-height:0;">
             <div class="playmat-surface">
-              ${opponents.map(opp => `
-                <div class="opponent-hud-bar" onclick="GameEngine.handleOpponentClick('${opp.username}')" title="Clique para mirar ataque no oponente">
-                  <div class="opp-info-tag">
-                    <span>⚔️ <b>${opp.username}</b></span>
-                    <span class="opp-life-badge">❤️ <b id="opp-life-${opp.username}">${opp.life}</b>${opp.poison > 0 ? ` ☠️${opp.poison}` : ''}</span>
-                    <span class="opp-hand-badge">🃏 ${opp.handCount}</span>
-                  </div>
-                  <span class="opp-target-prompt">🎯 Alvo de Ataque</span>
+              <div class="opponent-hud-bar" onclick="GameEngine.handleOpponentClick('${opp.username}')" title="Clique para mirar ataque no oponente">
+                <div class="opp-info-tag">
+                  <span>⚔️ <b>${opp.username}</b></span>
+                  <span class="opp-life-badge">❤️ <b id="opp-life-${opp.username}">${opp.life}</b><span id="opp-poison-${opp.username}">${opp.poison > 0 ? ` ☠️${opp.poison}` : ''}</span></span>
+                  <span class="opp-hand-badge" id="opp-hand-${opp.username}">🃏 ${opp.handCount || (opp.hand||[]).length || 0}</span>
                 </div>
+                <span class="opp-target-prompt">🎯 Alvo de Ataque</span>
+              </div>
 
-                <div class="playmat-zone-slot frontline-combat-zone opp-frontline">
-                  <span class="playmat-slot-label">CAMPO DO OPONENTE</span>
-                  ${(opp.battlefield || []).map(c => CardRenderer.renderBattlefieldCard(c, false)).join('')}
-                </div>
-              `).join('')}
+              <!-- Opponent Backline: Lands & Artifacts (Top) -->
+              <div class="playmat-zone-slot backline-mana-zone opp-backline" id="opp-backline-${opp.username}">
+                <span class="playmat-slot-label">🌲 RETAGUARDA DO OPONENTE (TERRENOS & ARTEFATOS)</span>
+                ${oppSupport.map(c => CardRenderer.renderBattlefieldCard(c, false)).join('')}
+              </div>
+
+              <!-- Opponent Frontline: Creatures (Facing Center) -->
+              <div class="playmat-zone-slot frontline-combat-zone opp-frontline" id="opp-frontline-${opp.username}">
+                <span class="playmat-slot-label">⚔️ LINHA DE FRENTE DO OPONENTE (CRIATURAS)</span>
+                ${oppCreatures.map(c => CardRenderer.renderBattlefieldCard(c, false)).join('')}
+              </div>
             </div>
 
-            <!-- Opponent Side Slots (Interactive Graveyard & Exile) -->
+            <!-- Opponent Side Slots -->
             <div class="playmat-side-slots opp-side-slots">
               <div class="playmat-dedicated-slot" title="Grimório do Oponente">
                 <span class="playmat-dedicated-slot-title">📚 Deck</span>
-                <span class="playmat-dedicated-slot-count">${opponents[0]?.libraryCount || 0}</span>
+                <span class="playmat-dedicated-slot-count" id="opp-deck-count-${opp.username}">${opp.libraryCount || 0}</span>
               </div>
-              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('graveyard', '${opponents[0]?.username}')" title="Ver Cemitério do Oponente">
+              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('graveyard', '${opp.username}')" title="Ver Cemitério do Oponente">
                 <span class="playmat-dedicated-slot-title">⚰️ Cem.</span>
-                <span class="playmat-dedicated-slot-count">${opponents[0]?.graveyardCount || (opponents[0]?.graveyard||[]).length || 0}</span>
+                <span class="playmat-dedicated-slot-count" id="opp-graveyard-count-${opp.username}">${opp.graveyardCount || (opp.graveyard||[]).length || 0}</span>
               </div>
-              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('exile', '${opponents[0]?.username}')" title="Ver Exílio do Oponente">
+              <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('exile', '${opp.username}')" title="Ver Exílio do Oponente">
                 <span class="playmat-dedicated-slot-title">🌀 Exílio</span>
-                <span class="playmat-dedicated-slot-count">${opponents[0]?.exileCount || (opponents[0]?.exile||[]).length || 0}</span>
+                <span class="playmat-dedicated-slot-count" id="opp-exile-count-${opp.username}">${opp.exileCount || (opp.exile||[]).length || 0}</span>
               </div>
             </div>
           </div>
@@ -100,8 +152,8 @@ const GameBoard = {
             </div>
           </div>
 
-          <!-- PLAYER BATTLEFIELD ZONE -->
-          <div class="battlefield-zone player" id="my-battlefield">
+          <!-- PLAYER PLAYMAT (Symmetric Bottom Half) -->
+          <div class="battlefield-zone player" id="my-battlefield" style="flex:1 1 50%;min-height:0;">
             <div class="playmat-surface">
               <!-- Frontline: Creatures -->
               <div class="playmat-zone-slot frontline-combat-zone" id="my-frontline" data-drop-zone="battlefield">
@@ -115,28 +167,28 @@ const GameBoard = {
               </div>
             </div>
 
-            <!-- Player Dedicated Side Slots (Interactive) -->
+            <!-- Player Dedicated Side Slots -->
             <div class="playmat-side-slots player-side-slots">
               <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.action('drawCard')" title="Comprar Carta [D]">
                 <span class="playmat-dedicated-slot-title">📚 Deck</span>
-                <span class="playmat-dedicated-slot-count" id="playmat-library-count">${me?.library?.length || me?.libraryCount || 0}</span>
+                <span class="playmat-dedicated-slot-count" id="playmat-library-count">${me.library?.length || me.libraryCount || 0}</span>
               </div>
               <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('graveyard')" title="Ver Meu Cemitério">
                 <span class="playmat-dedicated-slot-title">⚰️ Cem.</span>
-                <span class="playmat-dedicated-slot-count" id="playmat-graveyard-count">${me?.graveyard?.length || me?.graveyardCount || 0}</span>
+                <span class="playmat-dedicated-slot-count" id="playmat-graveyard-count">${me.graveyard?.length || me.graveyardCount || 0}</span>
               </div>
               <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('exile')" title="Ver Meu Exílio">
                 <span class="playmat-dedicated-slot-title">🌀 Exílio</span>
-                <span class="playmat-dedicated-slot-count" id="playmat-exile-count">${me?.exile?.length || me?.exileCount || 0}</span>
+                <span class="playmat-dedicated-slot-count" id="playmat-exile-count">${me.exile?.length || me.exileCount || 0}</span>
               </div>
               <div class="playmat-dedicated-slot clickable-slot" onclick="GameEngine.showZone('commandZone')" title="Ver Zona de Comando">
                 <span class="playmat-dedicated-slot-title">👑 Cmd</span>
-                <span class="playmat-dedicated-slot-count">${me?.commandZone?.length || 0}</span>
+                <span class="playmat-dedicated-slot-count">${me.commandZone?.length || 0}</span>
               </div>
             </div>
           </div>
 
-          <!-- Chat Draggable / Collapsible Panel -->
+          <!-- Chat Draggable Panel -->
           <div class="game-chat draggable-panel" id="game-chat" style="display:none;">
             <div class="draggable-header" onmousedown="GameEngine.makeDraggable(document.getElementById('game-chat'), event)">
               <span style="font-size:0.75rem;color:var(--mana-gold-glow);font-weight:600;">💬 Chat da Partida</span>
@@ -152,10 +204,8 @@ const GameBoard = {
           </div>
         </div>
 
-        <!-- PLAYER HUD, ACTION BAR & EXPANDABLE HAND TRAY -->
+        <!-- PLAYER ACTION BAR & EXPANDABLE HAND TRAY -->
         <div id="player-hand-panel-wrapper" class="player-hand-panel-wrapper">
-          
-          <!-- Quick Action Bar -->
           <div class="game-action-bar">
             <button class="game-action-btn primary" onclick="GameEngine.action('drawCard')">📥 Comprar [D]</button>
             <button class="game-action-btn" onclick="GameEngine.action('untapAll')">🔄 Desvirar [U]</button>
@@ -165,19 +215,17 @@ const GameBoard = {
             <button class="game-action-btn" onclick="GameEngine.action('mulligan')">♻️ Mulligan</button>
             <button class="game-action-btn" onclick="GameEngine.action('searchLibrary')">🔍 Tutor Deck</button>
             <button class="game-action-btn toggle-hand-btn" onclick="GameBoard.toggleHandExpand()">
-              <span id="hand-toggle-label">🃏 Mão (${me?.hand?.length || 0}) ▲</span>
+              <span id="hand-toggle-label">🃏 Mão (${me.hand?.length || 0}) ▲</span>
             </button>
           </div>
 
-          <!-- Hand & Player Life Tray with Horizontal Navigation -->
           <div class="player-hand-area" id="player-hand-area">
-            
-            <!-- Player Life Counter & Counters Hub -->
+            <!-- Player Life Counter -->
             <div class="player-info-bar">
               <div class="life-display">
                 <button class="life-btn minus" onclick="GameEngine.action('updateLife',{amount:-1})">−</button>
                 <div class="life-value-wrapper">
-                  <span class="life-number ${me && me.life <= 5 ? 'critical' : me && me.life <= 10 ? 'low' : ''}" id="my-life">${me?.life || 20}</span>
+                  <span class="life-number ${me.life <= 5 ? 'critical' : me.life <= 10 ? 'low' : ''}" id="my-life">${me.life || 20}</span>
                   <span class="life-label-sub">VIDA</span>
                 </div>
                 <button class="life-btn plus" onclick="GameEngine.action('updateLife',{amount:1})">+</button>
@@ -188,17 +236,17 @@ const GameBoard = {
               </div>
               
               <div class="player-aux-counters">
-                <span class="mini-counter poison-counter" onclick="GameEngine.action('updatePoison',{amount:1})" title="Adicionar veneno">☠️ ${me?.poison || 0}</span>
-                <span class="mini-counter energy-counter" onclick="GameEngine.action('updateEnergy',{amount:1})" title="Adicionar energia">⚡ ${me?.energy || 0}</span>
+                <span class="mini-counter poison-counter" onclick="GameEngine.action('updatePoison',{amount:1})" title="Adicionar veneno">☠️ ${me.poison || 0}</span>
+                <span class="mini-counter energy-counter" onclick="GameEngine.action('updateEnergy',{amount:1})" title="Adicionar energia">⚡ ${me.energy || 0}</span>
               </div>
             </div>
 
             <!-- Hand Scroll Left Arrow -->
             <button class="hand-scroll-btn hand-scroll-left" onclick="GameBoard.scrollHand(-160)" title="Rolar cartas para esquerda">◀</button>
 
-            <!-- Hand Cards Fan with Wheel Scroll Support -->
+            <!-- Hand Cards Fan -->
             <div class="hand-cards" id="my-hand" onwheel="GameBoard.handleHandWheel(event)">
-              ${me && me.hand && me.hand.length > 0
+              ${me.hand && me.hand.length > 0
                 ? me.hand.map(c => CardRenderer.renderHandCard(c)).join('')
                 : '<div class="hand-empty-prompt">Clique em <b>"Deck"</b> no topo para importar e jogar com seu deck!</div>'}
             </div>
@@ -236,8 +284,205 @@ const GameBoard = {
     if (backline) DragDropSystem.init(backline);
     const hand = document.getElementById('my-hand');
     if (hand) DragDropSystem.init(hand);
+  },
 
-    GameEngine.bindKeyboardShortcuts();
+  // ═══════════════════════════════════════════════════════════════
+  // 👑 COMMANDER 2x2 (4-QUADRANT BATTLEFIELD WITH 40 LIFE)
+  // ═══════════════════════════════════════════════════════════════
+  renderCommander4P(room, myUsername) {
+    const me = room.players.find(p => p.username === myUsername) || { username: myUsername, life: 40, poison: 0, battlefield: [], hand: [] };
+    const opponents = room.players.filter(p => p.username !== myUsername);
+
+    const p1 = opponents[0] || { username: 'Jogador 2 (Vaga Aberta)', life: 40, poison: 0, battlefield: [], handCount: 0 };
+    const p2 = opponents[1] || { username: 'Jogador 3 (Vaga Aberta)', life: 40, poison: 0, battlefield: [], handCount: 0 };
+    const p3 = opponents[2] || { username: 'Jogador 4 (Vaga Aberta)', life: 40, poison: 0, battlefield: [], handCount: 0 };
+
+    const phases = ['untap','upkeep','draw','main1','combat_begin','combat_attackers','combat_blockers','combat_damage','combat_end','main2','end','cleanup'];
+    const phaseLabels = { untap:'Desvirar', upkeep:'Manutenção', draw:'Compra', main1:'Principal 1', combat_begin:'Combate', combat_attackers:'Atacantes', combat_blockers:'Bloqueadores', combat_damage:'Dano', combat_end:'Fim Combate', main2:'Principal 2', end:'Final', cleanup:'Limpeza' };
+
+    const renderQuadrant = (player, label, isSelf = false) => {
+      const creatures = (player.battlefield || []).filter(c => MTGCardHelper.isCreature(c));
+      const support = (player.battlefield || []).filter(c => !MTGCardHelper.isCreature(c));
+      const isOpponent = !isSelf;
+
+      return `
+        <div class="commander-quadrant ${isSelf ? 'is-self' : ''}" id="quadrant-${player.username}">
+          <div class="commander-quadrant-hud" onclick="GameEngine.handleOpponentClick('${player.username}')">
+            <div class="hud-player-name">
+              <span>${isSelf ? '👑 (VOCÊ)' : '⚔️'} ${player.username}</span>
+              <span style="font-size:0.65rem;color:var(--text-muted);">[${label}]</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span class="hud-life-badge" id="${isSelf ? 'my-life' : `opp-life-${player.username}`}">❤️ ${player.life || 40}</span>
+              <span style="font-size:0.68rem;color:var(--text-muted);" id="opp-hand-${player.username}">🃏 ${isSelf ? (player.hand||[]).length : (player.handCount||0)}</span>
+            </div>
+          </div>
+
+          <div class="commander-quadrant-body">
+            <!-- Playmat area inside quadrant -->
+            <div class="commander-quadrant-playmat">
+              <!-- Backline (Lands) -->
+              <div class="playmat-zone-slot backline-mana-zone" id="${isSelf ? 'my-backline' : `opp-backline-${player.username}`}" data-drop-zone="battlefield" style="min-height:42px;">
+                <span class="playmat-slot-label">🌲 TERRENOS & ARTEFATOS</span>
+                ${support.map(c => CardRenderer.renderBattlefieldCard(c, isSelf)).join('')}
+              </div>
+              <!-- Frontline (Creatures) -->
+              <div class="playmat-zone-slot frontline-combat-zone" id="${isSelf ? 'my-frontline' : `opp-frontline-${player.username}`}" data-drop-zone="battlefield" style="min-height:42px;">
+                <span class="playmat-slot-label">⚔️ CRIATURAS</span>
+                ${creatures.map(c => CardRenderer.renderBattlefieldCard(c, isSelf)).join('')}
+              </div>
+            </div>
+
+            <!-- Mini side slots -->
+            <div class="commander-quadrant-slots">
+              <div class="commander-mini-slot ${isSelf ? 'clickable-slot' : ''}" onclick="${isSelf ? "GameEngine.action('drawCard')" : ''}">
+                <span>📚 Deck</span>
+                <b id="${isSelf ? 'playmat-library-count' : `opp-deck-count-${player.username}`}">${player.libraryCount || (player.library||[]).length || 0}</b>
+              </div>
+              <div class="commander-mini-slot clickable-slot" onclick="GameEngine.showZone('graveyard', '${player.username}')">
+                <span>⚰️ Cem.</span>
+                <b id="${isSelf ? 'playmat-graveyard-count' : `opp-graveyard-count-${player.username}`}">${player.graveyardCount || (player.graveyard||[]).length || 0}</b>
+              </div>
+              <div class="commander-mini-slot clickable-slot" onclick="GameEngine.showZone('exile', '${player.username}')">
+                <span>🌀 Exílio</span>
+                <b id="${isSelf ? 'playmat-exile-count' : `opp-exile-count-${player.username}`}">${player.exileCount || (player.exile||[]).length || 0}</b>
+              </div>
+              <div class="commander-mini-slot clickable-slot" onclick="GameEngine.showZone('commandZone', '${player.username}')">
+                <span>👑 Cmd</span>
+                <b>${player.commandZone?.length || 0}</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    document.getElementById('app').innerHTML = `
+      <div class="game-table commander-table" oncontextmenu="return false;">
+        
+        <!-- MOBILE HORIZONTAL ORIENTATION PROMPT -->
+        <div class="commander-orientation-prompt">
+          <div class="orientation-icon-anim">📱 ⟳ 📲</div>
+          <h2>⚔️ FORMATO COMMANDER (4 JOGADORES)</h2>
+          <p>Para visualizar perfeitamente os <b>4 Quadrantes da Mesa</b>, gire o seu celular para a <b>Horizontal (Modo Paisagem)</b>.</p>
+          <button class="btn btn-primary" onclick="this.closest('.commander-orientation-prompt').remove()">Continuar em Tela Cheia ↗</button>
+        </div>
+
+        <!-- TOP BAR -->
+        <div class="game-top-bar">
+          <div class="game-top-bar-left">
+            <div class="game-phase-indicator" id="phase-stepper">
+              ${phases.map(p => `<span class="phase-step ${room.phase === p ? 'active' : ''}" data-phase="${p}" onclick="GameEngine.setPhase('${p}')">${phaseLabels[p]||p}</span>`).join('')}
+            </div>
+            <div class="game-turn-info">Turno ${room.turnNumber} • <b style="color:var(--mana-gold-glow);">${room.activePlayer || '—'}</b> [👑 Commander]</div>
+          </div>
+          
+          <div class="game-top-bar-actions">
+            <button class="game-menu-btn" onclick="GameEngine.sendPingPrompt()">📍 Ping</button>
+            <button class="game-menu-btn" onclick="GameEngine.showDeckSelector()">📚 Deck</button>
+            <button class="game-menu-btn btn-pass-phase" onclick="GameEngine.nextPhase()">Fase ▶</button>
+            <button class="game-menu-btn" onclick="GameBoard.toggleMobileQuickMenu()">⚙️ Ações</button>
+            <button class="game-menu-btn btn-leave-game mobile-hidden" onclick="GameEngine.leaveGame()">✕ Sair</button>
+          </div>
+        </div>
+
+        <!-- 4-QUADRANT COMMANDER GRID -->
+        <div class="commander-4p-grid" id="main-battlefield-container" onclick="GameEngine.handleBattlefieldClick(event)">
+          <!-- Top-Left: Opponent 1 -->
+          ${renderQuadrant(p1, 'Oponente 1')}
+
+          <!-- Top-Right: Opponent 2 -->
+          ${renderQuadrant(p2, 'Oponente 2')}
+
+          <!-- Central Cross Hub (Stack & Mana) -->
+          <div class="commander-center-hub">
+            <div class="center-stack-zone" style="background:transparent;border:none;">
+              <span>⚡ PILHA:</span>
+              <span id="stack-count" style="color:var(--mana-gold-glow);font-weight:700;">0</span>
+            </div>
+            <div class="floating-mana-bar" style="gap:2px;">
+              <span class="mana-pool-pip" onclick="GameEngine.addMana('W')">☀️<span id="mana-w">0</span></span>
+              <span class="mana-pool-pip" onclick="GameEngine.addMana('U')">💧<span id="mana-u">0</span></span>
+              <span class="mana-pool-pip" onclick="GameEngine.addMana('B')">💀<span id="mana-b">0</span></span>
+              <span class="mana-pool-pip" onclick="GameEngine.addMana('R')">🔥<span id="mana-r">0</span></span>
+              <span class="mana-pool-pip" onclick="GameEngine.addMana('G')">🌲<span id="mana-g">0</span></span>
+              <span class="mana-pool-pip" onclick="GameEngine.addMana('C')">◇<span id="mana-c">0</span></span>
+            </div>
+          </div>
+
+          <!-- Bottom-Left: Opponent 3 / Ally -->
+          ${renderQuadrant(p3, 'Aliado / Oponente 3')}
+
+          <!-- Bottom-Right: Local Player -->
+          ${renderQuadrant(me, 'Sua Mesa', true)}
+        </div>
+
+        <!-- PLAYER ACTION BAR & HAND TRAY -->
+        <div id="player-hand-panel-wrapper" class="player-hand-panel-wrapper">
+          <div class="game-action-bar">
+            <button class="game-action-btn primary" onclick="GameEngine.action('drawCard')">📥 Comprar [D]</button>
+            <button class="game-action-btn" onclick="GameEngine.action('untapAll')">🔄 Desvirar [U]</button>
+            <button class="game-action-btn" onclick="GameEngine.action('scry',{count:1})">👁 Vidência [S]</button>
+            <button class="game-action-btn" onclick="GameEngine.action('rollDice',{sides:20})">🎲 D20 [F]</button>
+            <button class="game-action-btn" onclick="GameEngine.showTokenMenu()">🎭 Token</button>
+            <button class="game-action-btn" onclick="GameEngine.action('searchLibrary')">🔍 Tutor</button>
+            <button class="game-action-btn toggle-hand-btn" onclick="GameBoard.toggleHandExpand()">
+              <span id="hand-toggle-label">🃏 Mão (${me.hand?.length || 0}) ▲</span>
+            </button>
+          </div>
+
+          <div class="player-hand-area" id="player-hand-area">
+            <div class="player-info-bar">
+              <div class="life-display">
+                <button class="life-btn minus" onclick="GameEngine.action('updateLife',{amount:-1})">−</button>
+                <div class="life-value-wrapper">
+                  <span class="life-number ${me.life <= 10 ? 'critical' : me.life <= 20 ? 'low' : ''}" id="my-life">${me.life || 40}</span>
+                  <span class="life-label-sub">VIDA 40</span>
+                </div>
+                <button class="life-btn plus" onclick="GameEngine.action('updateLife',{amount:1})">+</button>
+                <div class="life-quick-btns">
+                  <button class="life-quick-btn" onclick="GameEngine.action('updateLife',{amount:5})">+5</button>
+                  <button class="life-quick-btn" onclick="GameEngine.action('updateLife',{amount:-5})">-5</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="hand-scroll-btn hand-scroll-left" onclick="GameBoard.scrollHand(-160)">◀</button>
+            <div class="hand-cards" id="my-hand" onwheel="GameBoard.handleHandWheel(event)">
+              ${me.hand && me.hand.length > 0
+                ? me.hand.map(c => CardRenderer.renderHandCard(c)).join('')
+                : '<div class="hand-empty-prompt">Clique em <b>"Deck"</b> no topo para importar e jogar com seu deck!</div>'}
+            </div>
+            <button class="hand-scroll-btn hand-scroll-right" onclick="GameBoard.scrollHand(160)">▶</button>
+          </div>
+        </div>
+
+        <!-- MOBILE QUICK ACTIONS DRAWER MODAL -->
+        <div id="mobile-quick-menu" class="mobile-actions-drawer" style="display:none;">
+          <div class="drawer-header">
+            <span>⚙️ Menu Commander 2x2</span>
+            <button class="modal-close" onclick="GameBoard.toggleMobileQuickMenu()">✕</button>
+          </div>
+          <div class="drawer-grid">
+            <button class="drawer-action-btn" onclick="GameEngine.showDeckSelector(); GameBoard.toggleMobileQuickMenu();">📚 Trocar / Importar Deck</button>
+            <button class="drawer-action-btn" onclick="GameEngine.action('searchLibrary'); GameBoard.toggleMobileQuickMenu();">🔍 Buscar no Deck (Tutor)</button>
+            <button class="drawer-action-btn" onclick="GameEngine.showTokenMenu(); GameBoard.toggleMobileQuickMenu();">🎭 Criar Ficha (Token)</button>
+            <button class="drawer-action-btn" onclick="GameEngine.action('rollDice',{sides:20}); GameBoard.toggleMobileQuickMenu();">🎲 Rolar D20</button>
+            <button class="drawer-action-btn" onclick="GameEngine.sendPingPrompt(); GameBoard.toggleMobileQuickMenu();">📍 Enviar Radar Ping</button>
+            <button class="drawer-action-btn" onclick="document.getElementById('game-chat').style.display='flex'; GameBoard.toggleMobileQuickMenu();">💬 Abrir Chat</button>
+            <button class="drawer-action-btn danger" onclick="GameEngine.leaveGame()">✕ Sair da Mesa</button>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    const frontline = document.getElementById('my-frontline');
+    if (frontline) DragDropSystem.init(frontline);
+    const backline = document.getElementById('my-backline');
+    if (backline) DragDropSystem.init(backline);
+    const hand = document.getElementById('my-hand');
+    if (hand) DragDropSystem.init(hand);
   },
 
   handleHandWheel(e) {
