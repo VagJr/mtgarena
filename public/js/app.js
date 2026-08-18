@@ -62,6 +62,9 @@ function updateAuthUI() {
   const economy = document.getElementById('nav-economy');
   const goldEl = document.getElementById('user-gold');
   const gemsEl = document.getElementById('user-gems');
+  const mobileHeader = document.getElementById('mobile-nav-user-header');
+  const mobileName = document.getElementById('mobile-user-name');
+  const mobileStats = document.getElementById('mobile-user-stats');
 
   if (AppState.user) {
     authBtn.textContent = AppState.user.username;
@@ -78,6 +81,12 @@ function updateAuthUI() {
     goldEl.textContent = `🪙 ${AppState.user.gold || 0}`;
     gemsEl.textContent = `💎 ${AppState.user.gems || 0}`;
 
+    if (mobileHeader) {
+      mobileHeader.style.display = 'block';
+      if (mobileName) mobileName.textContent = AppState.user.username;
+      if (mobileStats) mobileStats.textContent = `🪙 ${AppState.user.gold || 0} Gold • 💎 ${AppState.user.gems || 0} Gems • Nível ${AppState.user.level || 1}`;
+    }
+
     // Re-register social presence
     if (window.SocialDock && SocialDock.socket) {
       SocialDock.socket.emit('social:register', {
@@ -92,6 +101,7 @@ function updateAuthUI() {
     authBtn.textContent = 'Entrar';
     authBtn.onclick = showAuthModal;
     economy.style.display = 'none';
+    if (mobileHeader) mobileHeader.style.display = 'none';
   }
 }
 

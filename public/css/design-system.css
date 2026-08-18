@@ -271,11 +271,18 @@ a:hover { color: var(--mana-gold-glow); }
 }
 .nav-icon { font-size: 0.95rem; }
 
-.nav-user {
+.nav-actions-right {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   margin-left: auto;
+  flex-shrink: 0;
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   flex-shrink: 0;
 }
 .nav-economy {
@@ -317,6 +324,47 @@ a:hover { color: var(--mana-gold-glow); }
 .nav-auth-btn:hover {
   background: linear-gradient(135deg, rgba(212, 160, 23, 0.22), rgba(212, 160, 23, 0.08));
   box-shadow: var(--shadow-glow-gold);
+}
+
+/* ─── MOBILE DRAWER USER HEADER ─── */
+.mobile-nav-user-header {
+  background: linear-gradient(135deg, rgba(212, 160, 23, 0.15), rgba(14, 14, 28, 0.95));
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mobile-user-avatar {
+  font-size: 1.6rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mana-gold);
+  flex-shrink: 0;
+}
+.mobile-user-name {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--mana-gold-glow);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mobile-user-stats {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .nav-mobile-toggle {
@@ -470,19 +518,25 @@ a:hover { color: var(--mana-gold-glow); }
 /* ─── RESPONSIVE NAVBAR & MOBILE DROPDOWN ─── */
 @media (max-width: 768px) {
   :root {
-    --nav-height: 50px;
+    --nav-height: 52px;
   }
 
   .main-nav {
-    padding: 0 8px;
-    gap: 4px;
+    padding: 0 10px;
+    width: 100vw;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
     justify-content: space-between;
+    align-items: center;
   }
 
   .nav-brand {
     gap: 6px;
-    flex-shrink: 1;
+    flex: 0 1 auto;
     min-width: 0;
+    max-width: 140px;
   }
 
   .nav-logo-img {
@@ -496,34 +550,31 @@ a:hover { color: var(--mana-gold-glow); }
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 120px;
+  }
+
+  .nav-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
   }
 
   .nav-user {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-left: auto;
+    gap: 0;
     flex-shrink: 0;
   }
 
   .nav-economy {
-    gap: 2px;
-  }
-
-  .currency {
-    padding: 2px 6px;
-    font-size: 0.68rem;
-  }
-
-  .gem-currency {
-    display: none; /* No mobile exibe Gold para economizar espaço e garantir visualização perfeita */
+    display: none !important; /* No mobile oculta da barra fixa para não empurrar nada; os saldos ficam dentro do drawer e na home */
   }
 
   .nav-auth-btn {
-    padding: 4px 8px;
-    font-size: 0.74rem;
-    max-width: 90px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -531,24 +582,26 @@ a:hover { color: var(--mana-gold-glow); }
   }
 
   .nav-mobile-toggle {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
     border-radius: var(--radius-md);
-    background: rgba(14, 14, 28, 0.85);
-    border: 1px solid var(--border-default);
+    background: rgba(14, 14, 28, 0.9);
+    border: 1px solid var(--border-gold);
     padding: 6px;
-    margin-left: 3px;
+    margin: 0;
     flex-shrink: 0;
     cursor: pointer;
     z-index: 1002;
     transition: all var(--transition-fast);
   }
   .nav-mobile-toggle:hover, .nav-mobile-toggle:active {
-    border-color: var(--mana-gold);
+    border-color: var(--mana-gold-glow);
     background: var(--bg-hover);
+    box-shadow: 0 0 10px rgba(212, 160, 23, 0.3);
   }
 
   .nav-links {
@@ -561,7 +614,7 @@ a:hover { color: var(--mana-gold-glow); }
     -webkit-backdrop-filter: blur(18px);
     border-bottom: 2px solid var(--mana-gold);
     flex-direction: column;
-    padding: 10px 12px 20px;
+    padding: 12px 14px 24px;
     gap: 4px;
     margin-left: 0;
     display: none;
@@ -597,10 +650,10 @@ a:hover { color: var(--mana-gold-glow); }
 
 @media (max-width: 420px) {
   .nav-brand .nav-logo-text {
-    display: none; /* Em telas muito estreitas exibe apenas o ícone oficial da logo */
+    display: none; /* Em celulares menores exibe apenas o ícone oficial da logo */
   }
   .nav-auth-btn {
-    max-width: 80px;
+    max-width: 85px;
     font-size: 0.72rem;
   }
   .card-grid {

@@ -50,6 +50,16 @@
     </div>
 
     <div class="nav-links" id="nav-links">
+      <div id="mobile-nav-user-header" class="mobile-nav-user-header" style="display:none;">
+        <div class="mobile-user-info">
+          <span class="mobile-user-avatar">🧙</span>
+          <div style="flex:1;min-width:0;">
+            <div class="mobile-user-name" id="mobile-user-name">Planeswalker</div>
+            <div class="mobile-user-stats" id="mobile-user-stats">🪙 0 Gold • 💎 0 Gems</div>
+          </div>
+        </div>
+      </div>
+
       <a class="nav-link active" data-route="/" id="nav-home">
         <span class="nav-icon">🏠</span>
         <span class="nav-label">Home</span>
@@ -100,17 +110,19 @@
       </a>
     </div>
 
-    <div class="nav-user" id="nav-user">
-      <div class="nav-economy" id="nav-economy" style="display:none;">
-        <span class="currency gold-currency" id="user-gold" title="Gold">🪙 0</span>
-        <span class="currency gem-currency" id="user-gems" title="Gems">💎 0</span>
+    <div class="nav-actions-right">
+      <div class="nav-user" id="nav-user">
+        <div class="nav-economy" id="nav-economy" style="display:none;">
+          <span class="currency gold-currency" id="user-gold" title="Gold">🪙 0</span>
+          <span class="currency gem-currency" id="user-gems" title="Gems">💎 0</span>
+        </div>
+        <button class="nav-auth-btn" id="auth-btn" onclick="showAuthModal()">Entrar</button>
       </div>
-      <button class="nav-auth-btn" id="auth-btn" onclick="showAuthModal()">Entrar</button>
-    </div>
 
-    <button class="nav-mobile-toggle" id="mobile-toggle" onclick="toggleMobileNav()">
-      <span></span><span></span><span></span>
-    </button>
+      <button class="nav-mobile-toggle" id="mobile-toggle" onclick="toggleMobileNav()" aria-label="Abrir Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
   </nav>
 
   <!-- Main Content -->
