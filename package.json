@@ -1,0 +1,22 @@
+{
+  "name": "mtg-arena-social",
+  "version": "1.0.0",
+  "description": "MTG Arena Social - Comunidade & Simulador Tabletop de Magic: The Gathering",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "keywords": ["mtg", "magic-the-gathering", "tabletop", "card-game"],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "socket.io": "^4.7.5",
+    "sql.js": "^1.11.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "uuid": "^11.0.0"
+  }
+}
