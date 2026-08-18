@@ -322,6 +322,7 @@ a:hover { color: var(--mana-gold-glow); }
 .nav-mobile-toggle {
   display: none;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
   background: none;
   border: none;
@@ -335,6 +336,19 @@ a:hover { color: var(--mana-gold-glow); }
   background: var(--text-secondary);
   border-radius: 2px;
   transition: all var(--transition-fast);
+  transform-origin: center;
+}
+.nav-mobile-toggle.active span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+  background: var(--mana-gold-glow);
+}
+.nav-mobile-toggle.active span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.nav-mobile-toggle.active span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+  background: var(--mana-gold-glow);
 }
 
 /* ─── APP CONTAINER ─── */
@@ -453,10 +467,88 @@ a:hover { color: var(--mana-gold-glow); }
   100% { transform: rotateY(0deg) scale(1); opacity: 1; }
 }
 
-/* ─── RESPONSIVE ─── */
+/* ─── RESPONSIVE NAVBAR & MOBILE DROPDOWN ─── */
 @media (max-width: 768px) {
   :root {
-    --nav-height: 48px;
+    --nav-height: 50px;
+  }
+
+  .main-nav {
+    padding: 0 8px;
+    gap: 4px;
+    justify-content: space-between;
+  }
+
+  .nav-brand {
+    gap: 6px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .nav-logo-img {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .nav-logo-text {
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+
+  .nav-user {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .nav-economy {
+    gap: 2px;
+  }
+
+  .currency {
+    padding: 2px 6px;
+    font-size: 0.68rem;
+  }
+
+  .gem-currency {
+    display: none; /* No mobile exibe Gold para economizar espaço e garantir visualização perfeita */
+  }
+
+  .nav-auth-btn {
+    padding: 4px 8px;
+    font-size: 0.74rem;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .nav-mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: rgba(14, 14, 28, 0.85);
+    border: 1px solid var(--border-default);
+    padding: 6px;
+    margin-left: 3px;
+    flex-shrink: 0;
+    cursor: pointer;
+    z-index: 1002;
+    transition: all var(--transition-fast);
+  }
+  .nav-mobile-toggle:hover, .nav-mobile-toggle:active {
+    border-color: var(--mana-gold);
+    background: var(--bg-hover);
   }
 
   .nav-links {
@@ -464,29 +556,36 @@ a:hover { color: var(--mana-gold-glow); }
     top: var(--nav-height);
     left: 0;
     right: 0;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(10, 10, 20, 0.98);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 2px solid var(--mana-gold);
     flex-direction: column;
-    padding: var(--space-sm);
-    gap: 2px;
+    padding: 10px 12px 20px;
+    gap: 4px;
     margin-left: 0;
     display: none;
     max-height: calc(100vh - var(--nav-height));
     overflow-y: auto;
-    z-index: 999;
+    z-index: 1000;
+    box-shadow: 0 16px 35px rgba(0,0,0,0.9);
   }
   .nav-links.open {
     display: flex;
-    animation: slideUp 0.25s ease;
+    animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .nav-link {
     width: 100%;
     padding: 10px 14px;
     font-size: 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.04);
   }
-  .nav-mobile-toggle {
-    display: flex;
+  .nav-link:active {
+    background: var(--bg-hover);
+    color: var(--mana-gold-glow);
   }
+
   .card-grid {
     grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
     gap: 6px;
@@ -496,8 +595,14 @@ a:hover { color: var(--mana-gold-glow); }
   }
 }
 
-@media (max-width: 480px) {
-  .nav-logo-text { font-size: 0.85rem; }
+@media (max-width: 420px) {
+  .nav-brand .nav-logo-text {
+    display: none; /* Em telas muito estreitas exibe apenas o ícone oficial da logo */
+  }
+  .nav-auth-btn {
+    max-width: 80px;
+    font-size: 0.72rem;
+  }
   .card-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   }

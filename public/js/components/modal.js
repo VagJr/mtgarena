@@ -95,7 +95,10 @@ async function handleRegister(e) {
 }
 
 function toggleMobileNav() {
-  document.getElementById('nav-links').classList.toggle('open');
+  const navLinks = document.getElementById('nav-links');
+  const toggleBtn = document.getElementById('mobile-toggle');
+  if (navLinks) navLinks.classList.toggle('open');
+  if (toggleBtn) toggleBtn.classList.toggle('active');
 }
 
 // Close modal on overlay click
@@ -107,9 +110,10 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Close mobile nav on link click
+// Close mobile nav on link click or outside click
 document.addEventListener('click', (e) => {
   if (e.target.closest('.nav-link')) {
-    document.getElementById('nav-links').classList.remove('open');
+    document.getElementById('nav-links')?.classList.remove('open');
+    document.getElementById('mobile-toggle')?.classList.remove('active');
   }
 });
