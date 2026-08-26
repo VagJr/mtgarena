@@ -17,6 +17,54 @@ function showToast(message, type = 'info', duration = 3500) {
   }, duration);
 }
 
+function showAchievement(icon, title, description, reward) {
+  const existing = document.querySelector('.achievement-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'achievement-overlay';
+  overlay.innerHTML = `
+    <div class="achievement-card">
+      <div class="ach-icon">${icon}</div>
+      <div class="ach-title">${title}</div>
+      <div class="ach-desc">${description}</div>
+      ${reward ? `<div class="ach-reward">🎁 ${reward}</div>` : ''}
+    </div>`;
+
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 5000);
+}
+
+function showLevelUp(level, reward) {
+  const existing = document.querySelector('.levelup-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'levelup-overlay';
+  overlay.innerHTML = `
+    <div class="levelup-card">
+      <div class="levelup-icon">⚔️</div>
+      <div class="levelup-text">LEVEL UP!</div>
+      <div class="levelup-level">Nível ${level}</div>
+      ${reward ? `<div class="levelup-reward">🎁 ${reward}</div>` : ''}
+    </div>`;
+
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 4000);
+}
+
+function showXPFloat(amount, x, y) {
+  const el = document.createElement('div');
+  el.className = 'xp-float';
+  el.textContent = `+${amount} XP`;
+  el.style.left = (x || window.innerWidth / 2 - 30) + 'px';
+  el.style.top = (y || window.innerHeight / 2) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {

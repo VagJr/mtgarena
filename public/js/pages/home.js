@@ -79,6 +79,32 @@ const HomePage = {
               <h3>OCR & Tradução</h3>
               <p>Reconheça cartas por foto e traduza para Português em tempo real.</p>
             </div>
+            <div class="quick-action-card" onclick="navigateTo('/missions')">
+              <div class="quick-action-icon">📋</div>
+              <h3>Missões & Recompensas</h3>
+              <p>Complete missões diárias e semanais para ganhar Gold, XP e itens exclusivos.</p>
+            </div>
+            <div class="quick-action-card" onclick="navigateTo('/seasons')">
+              <div class="quick-action-icon">🏆</div>
+              <h3>Temporada & Rankings</h3>
+              <p>Suba de tier, compete no leaderboard e conquiste recompensas de temporada.</p>
+            </div>
+            <div class="quick-action-card" onclick="navigateTo('/shop')">
+              <div class="quick-action-icon">🎨</div>
+              <h3>Loja de Customização</h3>
+              <p>Personalize voltas, mesas, avatares e compre emotes especiais.</p>
+            </div>
+            <div class="quick-action-card" onclick="navigateTo('/tavern')" style="border-color:var(--mana-gold);background:rgba(212,160,23,0.06);">
+              <div class="quick-action-icon">🍺</div>
+              <h3 style="color:var(--mana-gold-glow);">A Taverna do Multiverso</h3>
+              <p>Hub central: NPC, crafting, jogos, ofertas diárias, mystery boxes e economia completa!</p>
+            </div>
+            ${AppState.user ? '' : `
+            <div class="quick-action-card" onclick="navigateTo('/onboarding')" style="border-color:var(--mana-gold);background:rgba(212,160,23,0.06);">
+              <div class="quick-action-icon">🌟</div>
+              <h3 style="color:var(--mana-gold-glow);">Tutorial para Iniciantes</h3>
+              <p>Aprenda a jogar com um guia passo a passo e ganhe recompensas!</p>
+            </div>`}
             <div class="quick-action-card" onclick="navigateTo('/collection')">
               <div class="quick-action-icon">📚</div>
               <h3>Minha Coleção</h3>
@@ -89,8 +115,55 @@ const HomePage = {
               <h3>Deck Builder</h3>
               <p>Construa, importe e exporte listas para qualquer formato.</p>
             </div>
+            <div class="quick-action-card" onclick="navigateTo('/market-intel')" style="border-color:var(--mana-gold);background:rgba(212,160,23,0.06);">
+              <div class="quick-action-icon">🤖</div>
+              <h3>Mercado IA</h3>
+              <p>Bots inteligentes compram e vendem cartas com preços dinâmicos.</p>
+            </div>
+            <div class="quick-action-card" onclick="navigateTo('/binders')">
+              <div class="quick-action-icon">📖</div>
+              <h3>Fichários</h3>
+              <p>Organize suas cartas em fichários personalizados com skins.</p>
+            </div>
           </div>
         </section>
+
+        <!-- Market Pulse Widget -->
+        <section class="container mb-xl">
+          <div class="market-pulse" id="home-market-pulse">
+            <div class="market-pulse-header">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <h3 style="margin:0;">📊 Pulso do Mercado</h3>
+                <div class="pulse-dot"></div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="navigateTo('/market-intel')">Ver Tudo →</button>
+            </div>
+            <div class="pulse-ticker" id="pulse-ticker">
+              <div style="color:var(--text-muted);font-size:0.85rem;width:100%;text-align:center;padding:12px;">Carregando mercado...</div>
+            </div>
+          </div>
+        </section>
+
+        <script>
+          (async function loadPulse() {
+            try {
+              const res = await fetch('/api/pricing/overview');
+              const data = await res.json();
+              const ticker = document.getElementById('pulse-ticker');
+              if (!ticker || !data.trending?.length) return;
+              ticker.innerHTML = data.trending.slice(0, 8).map(c => {
+                const pct = c.trend === 'up' ? '+12%' : c.trend === 'down' ? '-8%' : '0%';
+                const cls = c.trend === 'up' ? 'up' : c.trend === 'down' ? 'down' : 'flat';
+                const arrow = c.trend === 'up' ? '↑' : c.trend === 'down' ? '↓' : '—';
+                return `<div class="pulse-item">
+                  <div class="name">${c.name || '???'}</div>
+                  <div class="price">${c.current_price || 0}</div>
+                  <div class="change ${cls}">${arrow} ${pct}</div>
+                </div>`;
+              }).join('');
+            } catch(e) {}
+          })();
+        </script>
 
         <!-- News Section (Multiverse Journal) -->
         <section class="container mt-2xl mb-xl">
@@ -320,12 +393,17 @@ const HomePage = {
     if (!AppState.user) return showToast('Faça login primeiro', 'warning');
     try {
       const data = await API.claimDaily();
+      const prevLevel = AppState.user.level || 1;
       AppState.user.gold = data.balance.gold;
       AppState.user.gems = data.balance.gems;
       AppState.user.xp = data.balance.xp;
       AppState.user.level = data.balance.level;
       updateAuthUI();
       showToast(`🎁 Recompensa: +${data.reward.gold} Gold, +${data.reward.xp} XP!`, 'success');
+      showXPFloat(data.reward.xp);
+      if (data.balance.level > prevLevel) {
+        setTimeout(() => showLevelUp(data.balance.level, `+${data.reward.gold} Gold`), 800);
+      }
 
       const goldEl = document.getElementById('stat-gold');
       const xpEl = document.getElementById('stat-xp');

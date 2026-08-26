@@ -36,7 +36,7 @@ const GameLobbyPage = {
       <div class="page-enter container" style="padding-top:var(--space-xl);">
         <div class="section-header">
           <h1 class="section-title">⚔️ Mesas de Jogo</h1>
-          ${AppState.user ? `<button class="btn btn-primary" onclick="GameLobbyPage.showCreateRoom()">+ Criar Mesa</button>` : ''}
+          ${AppState.user ? `<button class="btn btn-primary" id="criar-mesa-btn" style="position:relative;z-index:10;pointer-events:auto;">+ Criar Mesa</button>` : ''}
         </div>
         ${!AppState.user ? '<div class="empty-state"><div class="empty-state-icon">🔒</div><div class="empty-state-title">Login Necessário</div><button class="btn btn-primary mt-lg" onclick="showAuthModal()">Entrar</button></div>' : `
         <div class="tabs">
@@ -73,6 +73,15 @@ const GameLobbyPage = {
         .room-status.waiting { background:var(--success); box-shadow:0 0 6px var(--success); }
         .room-status.playing { background:var(--warning); box-shadow:0 0 6px var(--warning); }
       </style>`;
+
+    const criarBtn = document.getElementById('criar-mesa-btn');
+    if (criarBtn) {
+      criarBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        GameLobbyPage.showCreateRoom();
+      });
+    }
   },
 
   formatFilter: 'all',
@@ -110,7 +119,18 @@ const GameLobbyPage = {
       </div>`).join('');
   },
 
-  showCreateRoom() { document.getElementById('create-room-modal').style.display = 'flex'; },
+  showCreateRoom() {
+    const modal = document.getElementById('create-room-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.style.position = 'fixed';
+      modal.style.inset = '0';
+      modal.style.zIndex = '9999';
+      modal.style.alignItems = 'center';
+      modal.style.justifyContent = 'center';
+      modal.style.background = 'rgba(0,0,0,0.7)';
+    }
+  },
 
   createRoom(e) {
     e.preventDefault();

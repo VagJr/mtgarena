@@ -668,20 +668,146 @@ router.post('/booster/open', authenticateToken, async (req, res) => {
   }
 });
 
-// Daily reward
+// Helper: calculate level from XP (100 XP per level, increasing)
+function calculateLevel(xp) {
+  let level = 1;
+  let required = 100;
+  let total = 0;
+  while (total + required <= xp) {
+    total += required;
+    level++;
+    required = Math.floor(required * 1.15);
+  }
+  return level;
+}
+
+// Helper: XP needed for next level
+function xpForNextLevel(xp) {
+  let level = 1;
+  let required = 100;
+  let total = 0;
+  while (total + required <= xp) {
+    total += required;
+    level++;
+    required = Math.floor(required * 1.15);
+  }
+  return { level, xp_into_level: xp - total, xp_needed: required };
+}
+
+// Daily reward with streak tracking and cooldown
 router.post('/daily', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    db.run("UPDATE users SET gold = gold + 250, xp = xp + 50 WHERE id = ?", [req.user.id]);
+    const today = new Date().toISOString().split('T')[0];
+
+    // Check streak
+    let streakResult = db.exec("SELECT current_streak, longest_streak, last_claim_date, total_days FROM daily_streaks WHERE user_id = ?", [req.user.id]);
+    let streak = { current_streak: 0, longest_streak: 0, last_claim_date: null, total_days: 0 };
+    if (streakResult.length > 0 && streakResult[0].values.length > 0) {
+      const row = streakResult[0].values[0];
+      streak = { current_streak: row[0], longest_streak: row[1], last_claim_date: row[2], total_days: row[3] };
+    }
+
+    // Cooldown: can only claim once per day
+    if (streak.last_claim_date === today) {
+      return res.status(400).json({ error: 'Recompensa diária já coletada hoje! Volte amanhã.' });
+    }
+
+    // Calculate streak
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    if (streak.last_claim_date === yesterday) {
+      streak.current_streak++;
+    } else if (streak.last_claim_date !== today) {
+      streak.current_streak = 1;
+    }
+    streak.longest_streak = Math.max(streak.longest_streak, streak.current_streak);
+    streak.total_days++;
+
+    // Streak bonus: base 250 gold + streak bonus
+    const streakBonus = Math.min(streak.current_streak - 1, 6) * 25; // +25 per day up to +150
+    const baseGold = 250 + streakBonus;
+    const baseXp = 50 + Math.min(streak.current_streak - 1, 6) * 5;
+
+    // Milestone rewards
+    let milestoneReward = null;
+    if (streak.current_streak === 7) milestoneReward = { gold: 500, gems: 50, message: '🔥 Streak de 7 dias! Bônus especial!' };
+    if (streak.current_streak === 14) milestoneReward = { gold: 1000, gems: 100, message: '💎 Streak de 14 dias! Recompensa lendária!' };
+    if (streak.current_streak === 30) milestoneReward = { gold: 3000, gems: 300, message: '👑 Streak de 30 dias! Você é inabalável!' };
+
+    const totalGold = baseGold + (milestoneReward?.gold || 0);
+    const totalGems = milestoneReward?.gems || 0;
+
+    db.run("UPDATE users SET gold = gold + ?, xp = xp + ? WHERE id = ?", [totalGold, baseXp, req.user.id]);
+    if (totalGems > 0) db.run("UPDATE users SET gems = gems + ? WHERE id = ?", [totalGems, req.user.id]);
+
+    // Update streak
+    if (streakResult.length > 0 && streakResult[0].values.length > 0) {
+      db.run("UPDATE daily_streaks SET current_streak = ?, longest_streak = ?, last_claim_date = ?, total_days = ? WHERE user_id = ?",
+        [streak.current_streak, streak.longest_streak, today, streak.total_days, req.user.id]);
+    } else {
+      db.run("INSERT INTO daily_streaks (user_id, current_streak, longest_streak, last_claim_date, total_days) VALUES (?, ?, ?, ?, ?)",
+        [req.user.id, streak.current_streak, streak.longest_streak, today, streak.total_days]);
+    }
+
+    // Check level up
+    const userResult = db.exec("SELECT xp, level FROM users WHERE id = ?", [req.user.id]);
+    const newXp = userResult[0]?.values[0][0] || 0;
+    const newLevel = calculateLevel(newXp);
+    let levelUp = null;
+    if (newLevel > (userResult[0]?.values[0][1] || 1)) {
+      db.run("UPDATE users SET level = ? WHERE id = ?", [newLevel, req.user.id]);
+      levelUp = { new_level: newLevel, reward: { gold: newLevel * 50, gems: newLevel * 5 } };
+      db.run("UPDATE users SET gold = gold + ?, gems = gems + ? WHERE id = ?", [newLevel * 50, newLevel * 5, req.user.id]);
+    }
+
     saveDatabase();
 
-    const result = db.exec("SELECT gold, gems, xp, level FROM users WHERE id = ?", [req.user.id]);
-    const row = result[0].values[0];
+    const finalResult = db.exec("SELECT gold, gems, xp, level FROM users WHERE id = ?", [req.user.id]);
+    const row = finalResult[0].values[0];
 
     res.json({
-      reward: { gold: 250, xp: 50 },
+      reward: { gold: totalGold, xp: baseXp, gems: totalGems },
+      streak: { current: streak.current_streak, longest: streak.longest_streak, total_days: streak.total_days },
+      milestone: milestoneReward,
+      level_up: levelUp,
       balance: { gold: row[0], gems: row[1], xp: row[2], level: row[3] }
     });
+  } catch (err) {
+    console.error('Daily reward error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get daily streak info
+router.get('/daily/status', authenticateToken, (req, res) => {
+  try {
+    const db = req.db;
+    const today = new Date().toISOString().split('T')[0];
+    const streakResult = db.exec("SELECT current_streak, longest_streak, last_claim_date, total_days FROM daily_streaks WHERE user_id = ?", [req.user.id]);
+    let streak = { current_streak: 0, longest_streak: 0, last_claim_date: null, total_days: 0, claimed_today: false };
+    if (streakResult.length > 0 && streakResult[0].values.length > 0) {
+      const row = streakResult[0].values[0];
+      streak = {
+        current_streak: row[0], longest_streak: row[1],
+        last_claim_date: row[2], total_days: row[3],
+        claimed_today: row[2] === today
+      };
+    }
+    res.json(streak);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// XP to level info
+router.get('/level', authenticateToken, (req, res) => {
+  try {
+    const db = req.db;
+    const result = db.exec("SELECT xp, level FROM users WHERE id = ?", [req.user.id]);
+    if (result.length === 0) return res.status(404).json({ error: 'User not found' });
+    const xp = result[0].values[0][0];
+    const info = xpForNextLevel(xp);
+    res.json({ xp, level: info.level, xp_into_level: info.xp_into_level, xp_needed: info.xp_needed });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

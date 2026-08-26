@@ -157,18 +157,25 @@ router.post('/buy/:id', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Você não pode comprar seu próprio anúncio.' });
     }
 
+    // Mark as sold FIRST to prevent race condition (atomic claim)
+    const updateResult = db.run(`UPDATE market_listings SET status = 'sold' WHERE id = ? AND status = 'active'`, [listingId]);
+    if (updateResult.changes === 0) {
+      return res.status(400).json({ error: 'Anúncio já foi vendido para outro jogador.' });
+    }
+
     // Check buyer balance
     const userRes = db.exec(`SELECT gold FROM users WHERE id = ?`, [req.user.id]);
     const buyerGold = userRes[0].values[0][0];
 
     if (buyerGold < listing.price_gold) {
+      // Rollback: restore listing
+      db.run(`UPDATE market_listings SET status = 'active' WHERE id = ?`, [listingId]);
       return res.status(400).json({ error: `Gold insuficiente! Você possui ${buyerGold} Gold e a carta custa ${listing.price_gold} Gold.` });
     }
 
     // Process transaction
     db.run(`UPDATE users SET gold = gold - ? WHERE id = ?`, [listing.price_gold, req.user.id]);
     db.run(`UPDATE users SET gold = gold + ? WHERE id = ?`, [listing.price_gold, listing.seller_id]);
-    db.run(`UPDATE market_listings SET status = 'sold' WHERE id = ?`, [listingId]);
 
     // Add card to buyer's collection
     const existingColl = db.exec(`
@@ -183,6 +190,10 @@ router.post('/buy/:id', authenticateToken, (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, 1, ?)
       `, [req.user.id, listing.card_id, listing.card_name, listing.set_code, listing.rarity, listing.image_uri, listing.foil]);
     }
+
+    // Award XP to both parties
+    db.run("UPDATE users SET xp = xp + 15 WHERE id = ?", [req.user.id]);
+    db.run("UPDATE users SET xp = xp + 10 WHERE id = ?", [listing.seller_id]);
 
     saveDatabase();
 

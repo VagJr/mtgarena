@@ -92,6 +92,30 @@
         <span class="nav-icon">🛒</span>
         <span class="nav-label">Mercado</span>
       </a>
+      <a class="nav-link" data-route="/missions" id="nav-missions">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Missões</span>
+      </a>
+      <a class="nav-link" data-route="/seasons" id="nav-seasons">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">Temporada</span>
+      </a>
+      <a class="nav-link" data-route="/shop" id="nav-shop">
+        <span class="nav-icon">🎨</span>
+        <span class="nav-label">Loja</span>
+      </a>
+      <a class="nav-link" data-route="/tavern" id="nav-tavern" style="border-left:1px solid var(--border-subtle);padding-left:12px;">
+        <span class="nav-icon">🍺</span>
+        <span class="nav-label">Taverna</span>
+      </a>
+      <a class="nav-link" data-route="/market-intel" id="nav-market-intel">
+        <span class="nav-icon">🤖</span>
+        <span class="nav-label">Mercado IA</span>
+      </a>
+      <a class="nav-link" data-route="/binders" id="nav-binders">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">Fichários</span>
+      </a>
       <a class="nav-link" data-route="/meta" id="nav-meta">
         <span class="nav-icon">📊</span>
         <span class="nav-label">Meta</span>
@@ -115,6 +139,12 @@
         <div class="nav-economy" id="nav-economy" style="display:none;">
           <span class="currency gold-currency" id="user-gold" title="Gold">🪙 0</span>
           <span class="currency gem-currency" id="user-gems" title="Gems">💎 0</span>
+        </div>
+        <div id="nav-xp-bar" class="nav-xp-bar" style="display:none;">
+          <div class="xp-bar-track">
+            <div class="xp-bar-fill" id="nav-xp-fill" style="width:0%"></div>
+          </div>
+          <span class="xp-level-badge" id="nav-level-badge">Lv.1</span>
         </div>
         <button class="nav-auth-btn" id="auth-btn" onclick="showAuthModal()">Entrar</button>
       </div>
@@ -268,6 +298,13 @@
   <script src="/js/pages/meta.js"></script>
   <script src="/js/pages/news.js"></script>
   <script src="/js/pages/profile.js"></script>
+  <script src="/js/pages/missions.js"></script>
+  <script src="/js/pages/seasons.js"></script>
+  <script src="/js/pages/customization.js"></script>
+  <script src="/js/pages/onboarding.js"></script>
+    <script src="/js/pages/tavern.js"></script>
+    <script src="/js/pages/bot-market.js"></script>
+    <script src="/js/pages/binders.js"></script>
   <script src="/js/game/VFXEngine.js"></script>
   <script src="/js/game/DragDropSystem.js"></script>
   <script src="/js/game/CounterSystem.js"></script>

@@ -22,7 +22,14 @@ const routes = {
   '/market': MarketPage,
   '/meta': MetaPage,
   '/news': NewsPage,
-  '/profile': ProfilePage
+  '/profile': ProfilePage,
+  '/missions': MissionsPage,
+  '/seasons': SeasonsPage,
+  '/shop': CustomizationPage,
+  '/onboarding': OnboardingPage,
+  '/tavern': TavernPage,
+  '/market-intel': BotMarketPage,
+  '/binders': BindersPage
 };
 
 // Router
@@ -81,6 +88,20 @@ function updateAuthUI() {
     goldEl.textContent = `🪙 ${AppState.user.gold || 0}`;
     gemsEl.textContent = `💎 ${AppState.user.gems || 0}`;
 
+    const xpBar = document.getElementById('nav-xp-bar');
+    const xpFill = document.getElementById('nav-xp-fill');
+    const levelBadge = document.getElementById('nav-level-badge');
+    if (xpBar && xpFill && levelBadge) {
+      xpBar.style.display = 'flex';
+      const level = AppState.user.level || 1;
+      const xp = AppState.user.xp || 0;
+      const xpForNext = Math.floor(100 * Math.pow(1.15, level - 1));
+      const xpForCurrent = Math.floor(100 * Math.pow(1.15, level - 2));
+      const progress = level > 1 ? Math.min(100, ((xp - xpForCurrent) / (xpForNext - xpForCurrent)) * 100) : Math.min(100, (xp / 100) * 100);
+      xpFill.style.width = `${progress}%`;
+      levelBadge.textContent = `Lv.${level}`;
+    }
+
     if (mobileHeader) {
       mobileHeader.style.display = 'block';
       if (mobileName) mobileName.textContent = AppState.user.username;
@@ -102,6 +123,8 @@ function updateAuthUI() {
     authBtn.onclick = showAuthModal;
     economy.style.display = 'none';
     if (mobileHeader) mobileHeader.style.display = 'none';
+    const xpBar = document.getElementById('nav-xp-bar');
+    if (xpBar) xpBar.style.display = 'none';
   }
 }
 

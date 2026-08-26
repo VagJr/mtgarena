@@ -42,6 +42,9 @@ const TranslationEngine = {
     }
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch('/api/cards/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,8 +56,11 @@ const TranslationEngine = {
           flavor_text: card.flavor_text,
           set_code: card.set || card.set_code,
           target_lang: targetLang
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) throw new Error('Translation API failed');
       const data = await response.json();
@@ -62,9 +68,8 @@ const TranslationEngine = {
       this.translationCache.set(cacheKey, data);
       return data;
     } catch (err) {
-      console.error('Translation error:', err);
-      // Return original on error
-      return {
+      // Fail silently — return original English text
+      const fallback = {
         name: card.name,
         type_line: card.type_line,
         oracle_text: card.oracle_text,
@@ -72,6 +77,8 @@ const TranslationEngine = {
         is_official: false,
         lang: 'en'
       };
+      this.translationCache.set(cacheKey, fallback);
+      return fallback;
     }
   },
 

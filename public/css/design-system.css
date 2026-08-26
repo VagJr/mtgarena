@@ -404,7 +404,6 @@ a:hover { color: var(--mana-gold-glow); }
   margin-top: var(--nav-height);
   min-height: calc(100vh - var(--nav-height));
   position: relative;
-  z-index: 1;
 }
 
 /* ─── UTILITY CLASSES ─── */
@@ -444,6 +443,39 @@ a:hover { color: var(--mana-gold-glow); }
   margin-bottom: var(--space-md);
   flex-wrap: wrap;
   gap: var(--space-sm);
+}
+
+/* ─── XP BAR IN NAV ─── */
+.nav-xp-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+}
+.xp-bar-track {
+  width: 60px;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+.xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--mana-blue), var(--mana-gold-glow));
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.xp-level-badge {
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--mana-gold-glow);
+  background: rgba(212,160,23,0.12);
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(212,160,23,0.25);
+  white-space: nowrap;
 }
 .section-title {
   font-family: var(--font-heading-decorative);
@@ -517,6 +549,135 @@ a:hover { color: var(--mana-gold-glow); }
 @keyframes slideDownNav {
   0% { opacity: 0; transform: translateY(-12px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastIn {
+  0% { opacity: 0; transform: translateX(40px) scale(0.95); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes toastOut {
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(40px); }
+}
+
+/* ─── ACHIEVEMENT POPUP (big centered overlay) ─── */
+.achievement-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.7);
+  animation: fadeIn 0.3s ease forwards;
+}
+.achievement-card {
+  background: linear-gradient(145deg, #1a1025, #2a1535);
+  border: 2px solid var(--mana-gold);
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 360px;
+  width: 90%;
+  box-shadow: 0 0 60px rgba(212,160,23,0.3), 0 0 120px rgba(212,160,23,0.1);
+  animation: achievementPop 0.5s var(--transition-spring) forwards;
+  position: relative;
+  overflow: hidden;
+}
+.achievement-card::before {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(circle at 50% 0%, rgba(212,160,23,0.15) 0%, transparent 60%);
+  pointer-events:none;
+}
+.achievement-card .ach-icon { font-size: 3rem; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(212,160,23,0.5)); }
+.achievement-card .ach-title {
+  font-family: var(--font-heading); font-size: 1.4rem;
+  color: var(--mana-gold-glow); margin-bottom: 6px;
+}
+.achievement-card .ach-desc { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px; }
+.achievement-card .ach-reward { font-size: 0.8rem; color: var(--mana-gold); }
+@keyframes achievementPop {
+  0% { transform: scale(0.5) translateY(30px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* ─── LEVEL-UP OVERLAY ─── */
+.levelup-overlay {
+  position: fixed; inset: 0; z-index: 9001;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.8);
+  animation: fadeIn 0.3s ease forwards;
+  pointer-events: auto;
+}
+.levelup-card {
+  text-align: center;
+  animation: levelupPulse 0.6s var(--transition-spring) forwards;
+}
+.levelup-card .levelup-icon { font-size: 5rem; filter: drop-shadow(0 0 20px rgba(212,160,23,0.6)); margin-bottom: 12px; }
+.levelup-card .levelup-text {
+  font-family: var(--font-display); font-size: 1.8rem;
+  color: var(--mana-gold-glow);
+  text-shadow: 0 0 30px rgba(212,160,23,0.5);
+}
+.levelup-card .levelup-level {
+  font-family: var(--font-display); font-size: 3.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--mana-gold), #fff, var(--mana-gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 10px rgba(212,160,23,0.4));
+}
+.levelup-card .levelup-reward {
+  margin-top: 12px; font-size: 0.9rem; color: var(--text-secondary);
+}
+@keyframes levelupPulse {
+  0% { transform: scale(0.3) rotate(-5deg); opacity: 0; }
+  60% { transform: scale(1.1) rotate(1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* ─── MARKET PULSE WIDGET (home page) ─── */
+.market-pulse {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  position: relative;
+  overflow: hidden;
+}
+.market-pulse::before {
+  content:''; position:absolute; top:0; right:0;
+  width:120px; height:120px;
+  background: radial-gradient(circle, rgba(212,160,23,0.08) 0%, transparent 70%);
+  pointer-events:none;
+}
+.market-pulse-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.market-pulse-header h3 { margin:0; font-size:1rem; }
+.pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--success); animation: pulseBlink 2s infinite; }
+@keyframes pulseBlink {
+  0%,100% { opacity:1; } 50% { opacity:0.3; }
+}
+.pulse-ticker {
+  display:flex; gap:12px; overflow-x:auto; padding-bottom:4px;
+}
+.pulse-item {
+  flex:0 0 auto; text-align:center;
+  background:var(--bg-tertiary); border-radius:8px; padding:8px 12px;
+  min-width:90px;
+}
+.pulse-item .name { font-size:0.7rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px; }
+.pulse-item .price { font-size:0.85rem; font-weight:700; margin:2px 0; }
+.pulse-item .change { font-size:0.7rem; }
+.pulse-item .change.up { color:var(--success); }
+.pulse-item .change.down { color:var(--error); }
+.pulse-item .change.flat { color:var(--text-muted); }
+
+/* ─── XP GAIN FLOAT ─── */
+.xp-float {
+  position:fixed; z-index:8000;
+  font-family:var(--font-heading); font-size:1rem; font-weight:700;
+  color:var(--mana-gold-glow);
+  pointer-events:none;
+  animation: xpFloatUp 1.5s ease forwards;
+}
+@keyframes xpFloatUp {
+  0% { opacity:1; transform:translateY(0) scale(1); }
+  100% { opacity:0; transform:translateY(-60px) scale(1.2); }
 }
 
 /* ─── RESPONSIVE NAVBAR & MOBILE DROPDOWN ─── */

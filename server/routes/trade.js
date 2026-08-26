@@ -81,6 +81,30 @@ router.put('/:id', authenticateToken, (req, res) => {
       const offeredCards = JSON.parse(trade[4] || '[]');
       const wantedCards = JSON.parse(trade[5] || '[]');
 
+      // Verify sender has enough of offered cards
+      for (const card of offeredCards) {
+        const senderHas = db.exec(
+          "SELECT quantity FROM collections WHERE user_id = ? AND card_id = ?",
+          [trade[1], card.card_id]
+        );
+        const senderQty = senderHas.length > 0 && senderHas[0].values.length > 0 ? senderHas[0].values[0][0] : 0;
+        if (senderQty < (card.quantity || 1)) {
+          return res.status(400).json({ error: `Remetente não possui ${card.quantity || 1}x ${card.card_name || card.card_id} (tem ${senderQty})` });
+        }
+      }
+
+      // Verify receiver has enough of wanted cards
+      for (const card of wantedCards) {
+        const receiverHas = db.exec(
+          "SELECT quantity FROM collections WHERE user_id = ? AND card_id = ?",
+          [trade[2], card.card_id]
+        );
+        const receiverQty = receiverHas.length > 0 && receiverHas[0].values.length > 0 ? receiverHas[0].values[0][0] : 0;
+        if (receiverQty < (card.quantity || 1)) {
+          return res.status(400).json({ error: `Receptor não possui ${card.quantity || 1}x ${card.card_name || card.card_id} (tem ${receiverQty})` });
+        }
+      }
+
       // Move offered cards from sender to receiver
       for (const card of offeredCards) {
         db.run("UPDATE collections SET quantity = quantity - ? WHERE user_id = ? AND card_id = ?",
@@ -119,6 +143,10 @@ router.put('/:id', authenticateToken, (req, res) => {
 
       // Clean up zero-quantity entries
       db.run("DELETE FROM collections WHERE quantity <= 0");
+
+      // Award XP for trading
+      db.run("UPDATE users SET xp = xp + 25 WHERE id = ?", [trade[1]]);
+      db.run("UPDATE users SET xp = xp + 25 WHERE id = ?", [trade[2]]);
     }
 
     db.run("UPDATE trades SET status = ?, updated_at = datetime('now') WHERE id = ?",
