@@ -133,37 +133,16 @@ const HomePage = {
           <div class="market-pulse" id="home-market-pulse">
             <div class="market-pulse-header">
               <div style="display:flex;align-items:center;gap:8px;">
-                <h3 style="margin:0;">📊 Pulso do Mercado</h3>
+                <h3 style="margin:0;">Pulso do Mercado</h3>
                 <div class="pulse-dot"></div>
               </div>
-              <button class="btn btn-ghost btn-sm" onclick="navigateTo('/market-intel')">Ver Tudo →</button>
+              <button class="btn btn-ghost btn-sm" onclick="navigateTo('/market-intel')">Ver Tudo</button>
             </div>
             <div class="pulse-ticker" id="pulse-ticker">
               <div style="color:var(--text-muted);font-size:0.85rem;width:100%;text-align:center;padding:12px;">Carregando mercado...</div>
             </div>
           </div>
         </section>
-
-        <script>
-          (async function loadPulse() {
-            try {
-              const res = await fetch('/api/pricing/overview');
-              const data = await res.json();
-              const ticker = document.getElementById('pulse-ticker');
-              if (!ticker || !data.trending?.length) return;
-              ticker.innerHTML = data.trending.slice(0, 8).map(c => {
-                const pct = c.trend === 'up' ? '+12%' : c.trend === 'down' ? '-8%' : '0%';
-                const cls = c.trend === 'up' ? 'up' : c.trend === 'down' ? 'down' : 'flat';
-                const arrow = c.trend === 'up' ? '↑' : c.trend === 'down' ? '↓' : '—';
-                return `<div class="pulse-item">
-                  <div class="name">${c.name || '???'}</div>
-                  <div class="price">${c.current_price || 0}</div>
-                  <div class="change ${cls}">${arrow} ${pct}</div>
-                </div>`;
-              }).join('');
-            } catch(e) {}
-          })();
-        </script>
 
         <!-- News Section (Multiverse Journal) -->
         <section class="container mt-2xl mb-xl">
@@ -336,6 +315,7 @@ const HomePage = {
 
     this.loadRandomCard();
     this.loadNewsPreview();
+    this.loadMarketPulse();
   },
 
   async loadNewsPreview() {
@@ -412,5 +392,24 @@ const HomePage = {
     } catch (err) {
       showToast('Erro: ' + err.message, 'error');
     }
+  },
+
+  async loadMarketPulse() {
+    try {
+      const res = await fetch('/api/pricing/overview');
+      const data = await res.json();
+      const ticker = document.getElementById('pulse-ticker');
+      if (!ticker || !data.trending?.length) return;
+      ticker.innerHTML = data.trending.slice(0, 8).map(function(c) {
+        var pct = c.trend === 'up' ? '+12%' : c.trend === 'down' ? '-8%' : '0%';
+        var cls = c.trend === 'up' ? 'up' : c.trend === 'down' ? 'down' : 'flat';
+        var arrow = c.trend === 'up' ? '\u2191' : c.trend === 'down' ? '\u2193' : '\u2014';
+        return '<div class="pulse-item">' +
+          '<div class="name">' + (c.name || '???') + '</div>' +
+          '<div class="price">' + (c.current_price || 0) + '</div>' +
+          '<div class="change ' + cls + '">' + arrow + ' ' + pct + '</div>' +
+          '</div>';
+      }).join('');
+    } catch(e) {}
   }
 };
