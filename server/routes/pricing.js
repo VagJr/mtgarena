@@ -24,7 +24,7 @@ router.get('/market-overview', (req, res) => {
     `);
 
     const recentSales = db.exec(`
-      SELECT m.card_name, m.rarity, m.price_gold, m.sold_at, u.username as seller_name
+      SELECT m.card_name, m.rarity, m.price_gold, m.created_at as sold_at, u.username as seller_name
       FROM market_listings m
       JOIN users u ON m.seller_id = u.id
       WHERE m.status = 'sold'
