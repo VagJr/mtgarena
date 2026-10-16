@@ -1,0 +1,386 @@
+{
+ "format": 1,
+ "source_root": "C:\\mtg",
+ "repository": "VagJr/mtgarena",
+ "backup_branch": "backup/codex-2026-10-16-mtg",
+ "created_local_date": "2026-10-16",
+ "content": "code-and-art-only",
+ "local_only": [
+  {
+   "path": ".env",
+   "type": "configuration-key-or-save",
+   "bytes": 134
+  },
+  {
+   "path": "data/mtg.db",
+   "type": "configuration-key-or-save",
+   "bytes": 434176
+  }
+ ],
+ "sanitized_files": [],
+ "excluded_categories": {
+  "generated-or-downloadable-directory": 2
+ },
+ "files": {
+  ".gitignore": {
+   "sha": "746f864cf953b8a4dd22f035f80f169261a61da7",
+   "mode": "100644",
+   "bytes": 50
+  },
+  "logomtg.png": {
+   "sha": "5a63b9572415cd7c1dbc2e3ce59276c02e0d2582",
+   "mode": "100644",
+   "bytes": 2117062
+  },
+  "package-lock.json": {
+   "sha": "83965b0f0bc09bc68002ad66b86c6f833c83040e",
+   "mode": "100644",
+   "bytes": 45293
+  },
+  "package.json": {
+   "sha": "4571f86fc213414b416c48e3b0e6a3fa73fdccce",
+   "mode": "100644",
+   "bytes": 597
+  },
+  "public/assets/images/logomtg.png": {
+   "sha": "5a63b9572415cd7c1dbc2e3ce59276c02e0d2582",
+   "mode": "100644",
+   "bytes": 2117062
+  },
+  "public/css/components.css": {
+   "sha": "3d105f9b5329ed5c7234bd9e32f0373eba13793e",
+   "mode": "100644",
+   "bytes": 27943
+  },
+  "public/css/design-system.css": {
+   "sha": "1e9c5281c347bfbf160aa8305a215cac81ea51a8",
+   "mode": "100644",
+   "bytes": 22259
+  },
+  "public/css/game-table.css": {
+   "sha": "cab6ae1501425fe6738f59a6640e3e4294e38ae4",
+   "mode": "100644",
+   "bytes": 38191
+  },
+  "public/index.html": {
+   "sha": "3bf2ebaa75b74ff77980b8a9bd53da92a8c4e1d1",
+   "mode": "100644",
+   "bytes": 14513
+  },
+  "public/js/api.js": {
+   "sha": "caaaf8b9a7769c50068b715571dc1b2163479da6",
+   "mode": "100644",
+   "bytes": 11631
+  },
+  "public/js/app.js": {
+   "sha": "614ffd82ec90ac85cabd10bf32f1218621c151c9",
+   "mode": "100644",
+   "bytes": 6155
+  },
+  "public/js/components/card-display.js": {
+   "sha": "a2f88399adf8ce67a9c77ed069d6387d65d9677e",
+   "mode": "100644",
+   "bytes": 11623
+  },
+  "public/js/components/life-counter.js": {
+   "sha": "aed0354ee522ad961dec56049014d2fafb0d080c",
+   "mode": "100644",
+   "bytes": 707
+  },
+  "public/js/components/mana-symbols.js": {
+   "sha": "8b8561f83bfc64da8e42dfeadf27a375d900d726",
+   "mode": "100644",
+   "bytes": 2057
+  },
+  "public/js/components/modal.js": {
+   "sha": "a5493e27a70c9ed889047ed27cb069ded024df69",
+   "mode": "100644",
+   "bytes": 6501
+  },
+  "public/js/components/social-dock.js": {
+   "sha": "f1685a4ba416810c01a6f79c0e3378ba76b0ca6c",
+   "mode": "100644",
+   "bytes": 9878
+  },
+  "public/js/game/CardRenderer.js": {
+   "sha": "e9afda592afcadc8e7b93abe52adf2fd752e6cfd",
+   "mode": "100644",
+   "bytes": 6046
+  },
+  "public/js/game/CounterSystem.js": {
+   "sha": "5210b15042225d4534e211ddd8fadf439bb9513f",
+   "mode": "100644",
+   "bytes": 2046
+  },
+  "public/js/game/DragDropSystem.js": {
+   "sha": "6f9cb4fd61d69673f688a11662a704bb98d20704",
+   "mode": "100644",
+   "bytes": 8378
+  },
+  "public/js/game/GameBoard.js": {
+   "sha": "045b63f6f76b9dd2ce073f640e7c75266e98b25d",
+   "mode": "100644",
+   "bytes": 33656
+  },
+  "public/js/game/GameEngine.js": {
+   "sha": "670a293d7079e9101018e5abf437e412a2f8e337",
+   "mode": "100644",
+   "bytes": 62933
+  },
+  "public/js/game/TokenManager.js": {
+   "sha": "f0a96c643ec4b031b5ebdd2bbdd4672f93b4f8c0",
+   "mode": "100644",
+   "bytes": 2662
+  },
+  "public/js/game/VFXEngine.js": {
+   "sha": "b686c880be71e47dd3170d315d80f10a8fd90228",
+   "mode": "100644",
+   "bytes": 1980
+  },
+  "public/js/ocr/CardOCR.js": {
+   "sha": "f87c61c01293103a867abb5b52f573ff7520f079",
+   "mode": "100644",
+   "bytes": 8537
+  },
+  "public/js/ocr/TranslationEngine.js": {
+   "sha": "770466010c969e858b3ec1e0427d31a1ca5cf89c",
+   "mode": "100644",
+   "bytes": 3430
+  },
+  "public/js/pages/binders.js": {
+   "sha": "a3a6e610b60403c7900602364f51a60291f1c0ca",
+   "mode": "100644",
+   "bytes": 13555
+  },
+  "public/js/pages/booster.js": {
+   "sha": "2aec21e5087b9ea7ee25f01be9f437d1ef812ee6",
+   "mode": "100644",
+   "bytes": 13752
+  },
+  "public/js/pages/bot-market.js": {
+   "sha": "4cbd731bc4a269e55374d1db1bee988056599192",
+   "mode": "100644",
+   "bytes": 20454
+  },
+  "public/js/pages/collection.js": {
+   "sha": "d1d3168995a94157535d19a364e5773b282ce378",
+   "mode": "100644",
+   "bytes": 4941
+  },
+  "public/js/pages/customization.js": {
+   "sha": "db835740b5302cee224160aaeb5c0cbf8a529d25",
+   "mode": "100644",
+   "bytes": 12800
+  },
+  "public/js/pages/deck-builder.js": {
+   "sha": "d86a62cd3c9a0acd85d1a8b53e6fab8fcc68abd5",
+   "mode": "100644",
+   "bytes": 36849
+  },
+  "public/js/pages/game-lobby.js": {
+   "sha": "75f862c963bfc9ad254e9663f5561f4106678976",
+   "mode": "100644",
+   "bytes": 8820
+  },
+  "public/js/pages/home.js": {
+   "sha": "0582119e4678b0c5352601bcbe4ed2142c27affb",
+   "mode": "100644",
+   "bytes": 19807
+  },
+  "public/js/pages/market.js": {
+   "sha": "065736451b99859a0c7fcdaafa9adb724a5ae65d",
+   "mode": "100644",
+   "bytes": 18836
+  },
+  "public/js/pages/meta.js": {
+   "sha": "87f22fbdf5b06ef3dbb1949df02edc7ac657d2da",
+   "mode": "100644",
+   "bytes": 2526
+  },
+  "public/js/pages/missions.js": {
+   "sha": "69abb7bd259e6bd62c48c70a77c54c56e98a67f5",
+   "mode": "100644",
+   "bytes": 6966
+  },
+  "public/js/pages/news.js": {
+   "sha": "4bedb11f2c465d7d69c5407d6b3a81400047fb9d",
+   "mode": "100644",
+   "bytes": 5235
+  },
+  "public/js/pages/onboarding.js": {
+   "sha": "c757c970773dd74baf83322a7c5a3c5af9555edb",
+   "mode": "100644",
+   "bytes": 5809
+  },
+  "public/js/pages/profile.js": {
+   "sha": "c5d6ed92865164537e83740581cb17296153f786",
+   "mode": "100644",
+   "bytes": 13496
+  },
+  "public/js/pages/search.js": {
+   "sha": "4c6781e9090f854f07cea97c0ff7bf599b3cb774",
+   "mode": "100644",
+   "bytes": 7798
+  },
+  "public/js/pages/seasons.js": {
+   "sha": "428d582f2806e689b34eed0a05878d50d5194dd5",
+   "mode": "100644",
+   "bytes": 8482
+  },
+  "public/js/pages/social.js": {
+   "sha": "3531fdd931db69e9b3f6230d8a4368282fdf99e8",
+   "mode": "100644",
+   "bytes": 18484
+  },
+  "public/js/pages/tavern.js": {
+   "sha": "21c1773b30075d61619ed5320681f81b6de45ad6",
+   "mode": "100644",
+   "bytes": 30393
+  },
+  "public/js/pwa.js": {
+   "sha": "c29408e0ebd6dde3af052b3c4e234ddfe0c04d4e",
+   "mode": "100644",
+   "bytes": 6495
+  },
+  "public/logomtg.png": {
+   "sha": "5a63b9572415cd7c1dbc2e3ce59276c02e0d2582",
+   "mode": "100644",
+   "bytes": 2117062
+  },
+  "public/manifest.json": {
+   "sha": "c4165a1cde45be385e7a509b5675a5d91e6473d0",
+   "mode": "100644",
+   "bytes": 743
+  },
+  "public/sw.js": {
+   "sha": "bf1f80f47af1164612c9e11bf9009dd9690521c1",
+   "mode": "100644",
+   "bytes": 2725
+  },
+  "server/database.js": {
+   "sha": "9e148f7542ca0c8ad877cf845ea40909264a7a6f",
+   "mode": "100644",
+   "bytes": 44621
+  },
+  "server/economy/BotEngine.js": {
+   "sha": "969c7d3409b3b908bde76c0bb2094ea2661be478",
+   "mode": "100644",
+   "bytes": 11946
+  },
+  "server/economy/PricingEngine.js": {
+   "sha": "1abc44eebbe7b924f9c460aa15f8746fcbf1dc4e",
+   "mode": "100644",
+   "bytes": 12068
+  },
+  "server/game/GameRoom.js": {
+   "sha": "20c2bdff09795d916b9ee46828edf965e29a7de1",
+   "mode": "100644",
+   "bytes": 19918
+  },
+  "server/index.js": {
+   "sha": "4e70778e342165e77cfddec2a0ee902762db9a40",
+   "mode": "100644",
+   "bytes": 4662
+  },
+  "server/middleware/auth.js": {
+   "sha": "be345d9fa11842b691cb26ada822277814c15f95",
+   "mode": "100644",
+   "bytes": 895
+  },
+  "server/routes/achievements.js": {
+   "sha": "35d3c24bc966d2e73d2d15f30cc1adcffc0964f3",
+   "mode": "100644",
+   "bytes": 7585
+  },
+  "server/routes/auth.js": {
+   "sha": "66a94886d02d33be819de86bb3a501c2e29fae31",
+   "mode": "100644",
+   "bytes": 3930
+  },
+  "server/routes/bots.js": {
+   "sha": "c516df452347a4965a38f1d2c9606a4f8b1ad06b",
+   "mode": "100644",
+   "bytes": 3787
+  },
+  "server/routes/cards.js": {
+   "sha": "5b9ce103c98df34ac546931e0b6509d57d7b50fd",
+   "mode": "100644",
+   "bytes": 9473
+  },
+  "server/routes/collection.js": {
+   "sha": "73c210ce6e10f145b0cc7fceac7f52b1da4880a1",
+   "mode": "100644",
+   "bytes": 6202
+  },
+  "server/routes/customization.js": {
+   "sha": "eb4d0e3fc3554336863b698b2ef0a177222393e7",
+   "mode": "100644",
+   "bytes": 9884
+  },
+  "server/routes/decks.js": {
+   "sha": "e5e51afe654418fa731e68c9ad9ccc26f3558da6",
+   "mode": "100644",
+   "bytes": 8543
+  },
+  "server/routes/economy.js": {
+   "sha": "bde404bf673ab9232288955ba64daca54868e222",
+   "mode": "100644",
+   "bytes": 32427
+  },
+  "server/routes/market.js": {
+   "sha": "80cbf25159bf38eef704c5f2eb5d195396257972",
+   "mode": "100644",
+   "bytes": 11738
+  },
+  "server/routes/missions.js": {
+   "sha": "21f2625d402650a8bff897e0cddd38a66dda1232",
+   "mode": "100644",
+   "bytes": 8118
+  },
+  "server/routes/news.js": {
+   "sha": "4470e835806ddef6ebce67b7b630f3a80793c55b",
+   "mode": "100644",
+   "bytes": 3725
+  },
+  "server/routes/pricing.js": {
+   "sha": "3efca157e073bda38f71c5651a891bb11eb40923",
+   "mode": "100644",
+   "bytes": 6370
+  },
+  "server/routes/profile.js": {
+   "sha": "2cec38eca607693cecde5c79c5d53a905061d8e3",
+   "mode": "100644",
+   "bytes": 5262
+  },
+  "server/routes/seasons.js": {
+   "sha": "1b09de6e42b53aea1b129a81dade02ac9d7376d7",
+   "mode": "100644",
+   "bytes": 8248
+  },
+  "server/routes/showcases.js": {
+   "sha": "99eee0bcd0a81d780730a9e985a4dbbdc2c944ae",
+   "mode": "100644",
+   "bytes": 12692
+  },
+  "server/routes/social.js": {
+   "sha": "417c1bd133e40b5263a8d524fb77b20d66f3b257",
+   "mode": "100644",
+   "bytes": 10431
+  },
+  "server/routes/tavern.js": {
+   "sha": "10e26b6904414f397c90c5e7a8a52e39db0809cc",
+   "mode": "100644",
+   "bytes": 30918
+  },
+  "server/routes/trade.js": {
+   "sha": "103280b6e85efe412bca571136e6c78f23d1a884",
+   "mode": "100644",
+   "bytes": 6608
+  },
+  "server/social/SocialSocket.js": {
+   "sha": "64d8f675d7b225d43039b6156a32bfd006032d37",
+   "mode": "100644",
+   "bytes": 3760
+  }
+ }
+}
